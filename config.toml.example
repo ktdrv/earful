@@ -14,7 +14,7 @@ link = ""
 [voices]
 # Kokoro voice IDs. Browse options in the mlx-audio / Kokoro docs.
 # Prefixes: am_/af_ = US male/female, bm_/bf_ = UK male/female.
-host_a = "am_michael"
+host_a = "am_puck"
 host_b = "af_heart"
 
 [tts]
