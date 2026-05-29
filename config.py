@@ -32,6 +32,7 @@ class Host:
     name: str
     voice: str
     persona: str  # used by the script-authoring step to write this host in character
+    pan: float = 0.0  # stereo placement, -1 (left) .. +1 (right)
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,9 @@ class Config:
     speed: float
     speed_jitter: float
     gain_jitter_db: float
+    drift_db: float       # intra-turn slow level drift (mic-movement feel)
+    room_tone_db: float   # faint noise-floor level; <= -120 disables
+    mic_chain: bool       # apply gentle highpass + compression on export
     r2: R2Creds
 
 
@@ -69,7 +73,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
     # Hosts: prefer the [hosts.*] tables (name + voice + persona). Fall back to a
     # bare [voices] table for backward compatibility (name defaults to the id).
     if "hosts" in data:
-        hosts = {hid: Host(name=h["name"], voice=h["voice"], persona=h.get("persona", "")) for hid, h in data["hosts"].items()}
+        hosts = {hid: Host(name=h["name"], voice=h["voice"], persona=h.get("persona", ""), pan=float(h.get("pan", 0.0))) for hid, h in data["hosts"].items()}
     else:
         hosts = {hid: Host(name=hid, voice=v, persona="") for hid, v in data.get("voices", {}).items()}
     voices = {hid: h.voice for hid, h in hosts.items()}
@@ -99,5 +103,8 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         speed=float(tts.get("speed", 1.1)),  # 10% faster than Kokoro's 1.0 default
         speed_jitter=float(tts.get("speed_jitter", 0.04)),  # +/- fraction per turn
         gain_jitter_db=float(tts.get("gain_jitter_db", 2.0)),  # +/- dB per turn (mic-distance feel)
+        drift_db=float(tts.get("drift_db", 1.5)),
+        room_tone_db=float(tts.get("room_tone_db", -50.0)),
+        mic_chain=bool(tts.get("mic_chain", True)),
         r2=r2,
     )

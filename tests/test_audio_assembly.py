@@ -48,3 +48,40 @@ def test_episode_seed_is_stable_and_content_derived():
     e3 = Episode("Title", "d", [Turn("host_a", "Hi"), Turn("host_b", "Different")])
     assert tts._episode_seed(e1) == tts._episode_seed(e2)
     assert tts._episode_seed(e1) != tts._episode_seed(e3)
+
+
+def test_pan_stereo_positions():
+    mono = np.ones(8, dtype=np.float32)
+    center = tts.pan_stereo(mono, 0.0)
+    assert center.shape == (8, 2)
+    assert np.allclose(center[:, 0], center[:, 1])  # equal L/R when centered
+    left = tts.pan_stereo(mono, -1.0)
+    assert np.allclose(left[:, 1], 0.0) and np.all(left[:, 0] > 0)  # hard left: silent right
+    right = tts.pan_stereo(mono, 1.0)
+    assert np.allclose(right[:, 0], 0.0) and np.all(right[:, 1] > 0)
+
+
+def test_assemble_stereo_with_overlap():
+    a = np.ones((10, 2), dtype=np.float32)
+    b = np.ones((20, 2), dtype=np.float32)
+    out = tts.assemble_audio([a, b], [-4])
+    assert out.shape == (10 + 20 - 4, 2)
+    assert np.all(out[6:10] == 2.0)  # overlap-add region
+
+
+def test_apply_drift_bounded_and_reproducible():
+    mono = np.ones(2000, dtype=np.float32)
+    d1 = tts.apply_drift(mono, np.random.default_rng(7), 1.5)
+    d2 = tts.apply_drift(mono, np.random.default_rng(7), 1.5)
+    assert len(d1) == 2000
+    assert np.allclose(d1, d2)  # same seed -> same envelope
+    assert d1.max() <= 10 ** (1.5 / 20) + 1e-6  # within +/- max_db
+    assert tts.apply_drift(mono, np.random.default_rng(7), 0.0) is not None  # disabled path safe
+
+
+def test_add_room_tone_adds_faint_energy_and_can_disable():
+    silence = np.zeros((1000, 2), dtype=np.float32)
+    toned = tts.add_room_tone(silence, np.random.default_rng(1), -50.0)
+    assert toned.shape == (1000, 2)
+    assert 0 < np.max(np.abs(toned)) < 0.05  # audible-but-faint floor
+    assert np.array_equal(tts.add_room_tone(silence, np.random.default_rng(1), -130), silence)  # disabled

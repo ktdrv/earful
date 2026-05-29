@@ -21,7 +21,7 @@ def produce(episode_path: str, dry_run: bool) -> str:
     slug = feed.slugify(episode.title)
     mp3_path = f"out/{slug}.mp3"
     tags = {"title": episode.title, "artist": cfg.podcast.title, "album": cfg.podcast.title}
-    duration, size = tts.write_mp3(samples, cfg.sample_rate, mp3_path, tags)
+    duration, size = tts.write_mp3(samples, cfg.sample_rate, mp3_path, tags, mic_chain=cfg.mic_chain)
 
     guid = feed.make_guid(Path(mp3_path).read_bytes())
     audio_key = f"audio/{slug}-{guid[:8]}.mp3"

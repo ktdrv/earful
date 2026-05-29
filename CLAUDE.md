@@ -64,6 +64,18 @@ it sounds:
 - No stage directions or sound-effect cues inside `text` — only spoken words and the
   override syntax above get read.
 
+Lean into imperfection — real conversations aren't tidy:
+- **Self-corrections / restarts:** occasionally have a host reframe mid-thought —
+  "it's about—well, it's really about trust."
+- **Asymmetric turns:** don't keep turns evenly balanced. Let one host run three
+  sentences while the other just reacts with "Mm, right." or "Wait, really?"
+- **Mild disagreement:** they shouldn't always agree. A little pushback —
+  "I'd actually push back on that" — then resolution. Tension reads as real.
+- **Callbacks:** reference something said earlier ("like you said about churn…") for
+  continuity, as real co-hosts do.
+- **Cold open:** start mid-thought or with a beat of banter before the topic proper,
+  rather than a formal "Welcome to the show."
+
 Note: the pipeline already adds subtle organic variation automatically (per-turn
 speed, level, and pause length, including occasional overlap). Don't try to encode
 pauses or emphasis with extra punctuation hacks beyond normal writing.
