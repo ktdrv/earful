@@ -16,13 +16,13 @@ link = ""
 [hosts.host_a]
 name = "Theo"
 voice = "am_puck"
-pan = -0.3   # stereo placement: -1 left .. +1 right
+pan = -0.15   # stereo placement: -1 left .. +1 right
 persona = "The curious driver. Brings energy, asks the naive but sharp question, wants concrete examples, gently pushes back on hype. Shorter, punchier lines."
 
 [hosts.host_b]
 name = "Mara"
 voice = "af_heart"
-pan = 0.3
+pan = 0.15
 persona = "The seasoned expert. Grounds things in specifics and numbers, gives the nuanced take, occasionally wry. Slightly longer, structured explanations."
 
 [tts]
@@ -36,5 +36,5 @@ pause_max_ms = 500
 speed_jitter = 0.04   # +/- fraction of speed per turn
 gain_jitter_db = 2.0  # +/- dB per turn (mic-distance / turning-to-cohost feel)
 drift_db = 1.5        # slow level drift WITHIN a turn
-room_tone_db = -50.0  # faint pink-noise floor; <= -120 disables
+room_tone_db = -60.0  # faint pink-noise floor; <= -120 disables
 mic_chain = true      # gentle highpass + compression on export
