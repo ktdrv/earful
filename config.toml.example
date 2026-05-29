@@ -43,3 +43,5 @@ breath_db = -28.0     # level of a scripted [breath] inhale
 plosive_db = -22.0    # simulated plosive pop level; <= -120 disables
 plosive_prob = 0.4    # chance a plosive-initial sentence gets a pop
 mic_chain = true      # physical-mic tone chain on export (body + presence + exciter)
+deess_intensity = 0.4 # de-esser strength (0 disables)
+loudness_lufs = -16.0 # broadcast loudness target (EBU R128); > -70 enables loudnorm

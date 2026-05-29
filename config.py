@@ -56,6 +56,8 @@ class Config:
     plosive_db: float     # level of simulated plosive pops; <= -120 disables
     plosive_prob: float   # chance a plosive-initial sentence gets a pop
     mic_chain: bool       # apply the physical-mic tone chain on export
+    deess_intensity: float  # de-esser strength (0 disables)
+    loudness_lufs: float    # target integrated loudness; > -70 enables loudnorm
     r2: R2Creds
 
 
@@ -116,5 +118,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         plosive_db=float(tts.get("plosive_db", -22.0)),
         plosive_prob=float(tts.get("plosive_prob", 0.4)),
         mic_chain=bool(tts.get("mic_chain", True)),
+        deess_intensity=float(tts.get("deess_intensity", 0.4)),
+        loudness_lufs=float(tts.get("loudness_lufs", -16.0)),
         r2=r2,
     )

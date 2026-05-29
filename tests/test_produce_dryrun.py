@@ -6,8 +6,13 @@ import tts
 
 
 def test_produce_dry_run_writes_local_feed(tmp_path, monkeypatch):
-    # Fake synthesis: 0.3s of silence, so no model download and ffmpeg still runs.
-    monkeypatch.setattr(tts, "synthesize", lambda episode, config: np.zeros(int(24000 * 0.3), dtype=np.int16))
+    # Fake synthesis: ~1.2s of a faint tone (real signal, no model download) so the
+    # full mastering chain (de-ess + loudnorm) runs as it would on a real episode.
+    # (Pure silence crashes the MP3 psymodel under loudnorm — an unrealistic edge case.)
+    def fake_synth(episode, config):
+        t = np.linspace(0, 1.2, int(24000 * 1.2), endpoint=False, dtype=np.float32)
+        return tts.to_int16(0.1 * np.sin(2 * np.pi * 180 * t))
+    monkeypatch.setattr(tts, "synthesize", fake_synth)
     monkeypatch.chdir(tmp_path)
     # Minimal config.toml + env in the temp cwd.
     (tmp_path / "config.toml").write_text(

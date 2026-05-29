@@ -232,9 +232,11 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
     return to_int16(mix)
 
 
-def write_mp3(samples_int16: np.ndarray, sample_rate: int, mp3_path: str, tags: dict[str, str], mic_chain: bool = False) -> tuple[int, int]:
+def write_mp3(samples_int16: np.ndarray, sample_rate: int, mp3_path: str, tags: dict[str, str],
+              mic_chain: bool = False, deess_intensity: float = 0.0, loudness_lufs: float | None = None) -> tuple[int, int]:
     """Write int16 samples (mono or stereo) to an MP3 with ID3 tags. With mic_chain,
-    apply a gentle highpass + compression so it sounds recorded. Returns (secs, bytes)."""
+    apply the physical-mic tone chain plus a real-podcast mastering tail (de-ess +
+    loudness normalization). Returns (duration_secs, size_bytes)."""
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
         wav_path = tmp.name
     try:
@@ -243,7 +245,20 @@ def write_mp3(samples_int16: np.ndarray, sample_rate: int, mp3_path: str, tags: 
         if mic_chain:
             # Physical-mic chain: rumble filter, proximity body, gentle leveling,
             # presence lift + harmonic exciter to bring out consonant/plosive detail.
-            cmd += ["-af", "highpass=f=70,bass=g=2:f=110,acompressor=threshold=-20dB:ratio=2:attack=20:release=300,treble=g=2.5:f=6500,aexciter=amount=1.2:drive=5:freq=7000:blend=1"]
+            filters = [
+                "highpass=f=70",
+                "bass=g=2:f=110",
+                "acompressor=threshold=-20dB:ratio=2:attack=20:release=300",
+                "treble=g=2.5:f=6500",
+                "aexciter=amount=1.2:drive=5:freq=7000:blend=1",
+            ]
+            # Mastering tail, as a real podcast would: de-ess the sibilance the
+            # presence/exciter adds, then normalize to broadcast loudness + true-peak.
+            if deess_intensity > 0:
+                filters.append(f"deesser=i={deess_intensity}:m=0.5:f=0.5:s=o")
+            if loudness_lufs is not None and loudness_lufs > -70:
+                filters.append(f"loudnorm=I={loudness_lufs}:TP=-1.5:LRA=11")
+            cmd += ["-af", ",".join(filters)]
         for k, v in tags.items():
             cmd += ["-metadata", f"{k}={v}"]
         cmd.append(mp3_path)
