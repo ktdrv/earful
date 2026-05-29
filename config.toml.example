@@ -33,7 +33,8 @@ speed = 1.05          # 1.0 = Kokoro default; >1 speaks faster
 # Organic variation, randomized per turn (seeded from episode content -> reproducible).
 pause_min_ms = -100      # negative = brief overlap (hosts talk over each other)
 pause_max_ms = 500
-sentence_pause_ms = 160  # gap between sentences within a turn (keeps periods breathing)
+sentence_pause_ms = 100  # gap between sentences within a turn (keeps periods breathing)
+beat_pause_ms = 400      # default length of a bare inline [pause] in a script
 speed_jitter = 0.04   # +/- fraction of speed per turn
 gain_jitter_db = 2.0  # +/- dB per turn (mic-distance / turning-to-cohost feel)
 drift_db = 1.5        # slow level drift WITHIN a turn

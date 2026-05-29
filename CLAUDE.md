@@ -49,11 +49,26 @@ Schema:
   "description": "1-3 sentence summary shown in the podcast app",
   "scratchpad": "My outline/plan before writing turns (ignored by the pipeline)",
   "turns": [
-    {"speaker": "host_a", "text": "..."},
+    {"speaker": "host_a", "text": "...", "pause_after": 250},
     {"speaker": "host_b", "text": "..."}
   ]
 }
 ```
+
+### Scripting pacing (non-speech)
+You direct the rhythm, not just the words. Use these sparingly and deliberately —
+they're seasoning, not every line:
+- **`[pause]` / `[pause:Nms]`** inside `text` — a mid-turn beat. Bare `[pause]` is
+  ~400ms; `[pause:700]` sets the length. Great before a punchline or reveal:
+  `"Anyone can prompt a model now. [pause:500] Knowing which answer to trust is the rare part."`
+  The marker is removed from the spoken audio.
+- **`"pause_after": <ms>`** on a turn — the exact gap to the next turn, overriding the
+  random one. **Negative = overlap** (the next host starts before this one finishes,
+  i.e. talking over / jumping in): `"pause_after": -150`. Use a small positive value
+  (200-400) for comic/dramatic timing, negative for interruptions or eager agreement.
+- Sentences within a turn already get a short automatic pause; you don't need to
+  script those. Only add `[pause]`/`pause_after` where you want a beat that's longer,
+  shorter, or an overlap than the default rhythm.
 Rules:
 - **Let each turn be as long as the thought needs — and vary it hard.** A turn
   might be one word ("Brutal.") or five sentences when a host is making a real

@@ -50,6 +50,17 @@ def test_episode_seed_is_stable_and_content_derived():
     assert tts._episode_seed(e1) != tts._episode_seed(e3)
 
 
+def test_parse_pauses_extracts_beats():
+    assert tts.parse_pauses("Hello world.", 400) == [("speech", "Hello world.")]
+    assert tts.parse_pauses("Don't buy it. [pause] Why not?", 400) == [
+        ("speech", "Don't buy it."), ("pause", 400), ("speech", "Why not?")
+    ]
+    assert tts.parse_pauses("Wait [pause:750] for it.", 400) == [
+        ("speech", "Wait"), ("pause", 750), ("speech", "for it.")
+    ]
+    assert tts.parse_pauses("[pause:300]", 400) == [("pause", 300)]
+
+
 def test_split_sentences_keeps_abbreviations_intact():
     assert tts.split_sentences("Huh. Okay, but here's the thing.") == ["Huh.", "Okay, but here's the thing."]
     # periods inside A.I. and trailing punctuation must not over-split

@@ -45,6 +45,7 @@ class Config:
     pause_min_ms: int
     pause_max_ms: int
     sentence_pause_ms: int  # gap inserted between sentences within a turn
+    beat_pause_ms: int      # default length of a bare inline [pause] marker
     sample_rate: int
     speed: float
     speed_jitter: float
@@ -100,7 +101,8 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         lang_code=tts.get("lang_code", "a"),
         pause_min_ms=int(tts.get("pause_min_ms", -100)),  # negative => brief overlap (hosts talk over)
         pause_max_ms=int(tts.get("pause_max_ms", 500)),
-        sentence_pause_ms=int(tts.get("sentence_pause_ms", 160)),
+        sentence_pause_ms=int(tts.get("sentence_pause_ms", 100)),
+        beat_pause_ms=int(tts.get("beat_pause_ms", 400)),
         sample_rate=int(tts.get("sample_rate", 24000)),
         speed=float(tts.get("speed", 1.05)),  # slightly faster than Kokoro's 1.0 default
         speed_jitter=float(tts.get("speed_jitter", 0.04)),  # +/- fraction per turn

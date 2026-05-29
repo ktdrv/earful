@@ -17,6 +17,26 @@ def split_sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
 
 
+_PAUSE_RE = re.compile(r"\[pause(?::(\d+))?\]", re.IGNORECASE)
+
+
+def parse_pauses(text: str, default_ms: int) -> list[tuple[str, object]]:
+    """Split text on inline [pause] / [pause:Nms] markers into an ordered list of
+    ("speech", str) and ("pause", ms) parts. Markers are removed from the spoken text."""
+    parts: list[tuple[str, object]] = []
+    last = 0
+    for m in _PAUSE_RE.finditer(text):
+        seg = text[last:m.start()].strip()
+        if seg:
+            parts.append(("speech", seg))
+        parts.append(("pause", int(m.group(1)) if m.group(1) else default_ms))
+        last = m.end()
+    tail = text[last:].strip()
+    if tail:
+        parts.append(("speech", tail))
+    return parts
+
+
 def assemble_audio(turn_audios: list[np.ndarray], pauses: list[int]) -> np.ndarray:
     """Join per-turn audio with the gaps in `pauses` (one per boundary, in samples).
     A positive gap inserts silence; a negative gap overlaps the turns by that many
@@ -102,34 +122,48 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
 
     model = load_model(config.tts_model)
     rng = np.random.default_rng(_episode_seed(episode))
-    turn_audios: list[np.ndarray] = []
-    for turn in episode.turns:
-        host = config.hosts[turn.speaker]
-        speed = config.speed * (1.0 + rng.uniform(-config.speed_jitter, config.speed_jitter))
-        # Synthesize each sentence separately so we control the pause between them —
-        # Kokoro's own end-of-sentence gap is short and gets shrunk further by speed,
-        # which made interjections ("Huh.") run into the next sentence.
-        sentences = split_sentences(turn.text)
+    sr = config.sample_rate
+
+    def silence(ms: int) -> np.ndarray:
+        return np.zeros(max(0, int(sr * ms / 1000)), dtype=np.float32)
+
+    def render_speech(text: str, voice: str) -> np.ndarray:
+        # Synthesize each sentence separately so we (a) control the gap between them
+        # and (b) vary the speaking pace per sentence — real speech speeds up and
+        # slows down within a paragraph, it isn't uniform.
         sent_audios: list[np.ndarray] = []
-        for sentence in sentences:
+        for sentence in split_sentences(text):
+            speed = config.speed * (1.0 + rng.uniform(-config.speed_jitter, config.speed_jitter))
             chunks = [
                 np.asarray(r.audio, dtype=np.float32).reshape(-1)
-                for r in model.generate(text=sentence, voice=host.voice, lang_code=config.lang_code, speed=speed)
+                for r in model.generate(text=sentence, voice=voice, lang_code=config.lang_code, speed=speed)
             ]
             if chunks:
                 sent_audios.append(np.concatenate(chunks))
         gaps = [
-            int(config.sample_rate * max(0, rng.integers(config.sentence_pause_ms - 40, config.sentence_pause_ms + 41)) / 1000)
+            max(0, int(sr * rng.integers(config.sentence_pause_ms - 40, config.sentence_pause_ms + 41) / 1000))
             for _ in range(len(sent_audios) - 1)
         ]
-        mono = assemble_audio(sent_audios, gaps) if sent_audios else np.zeros(0, dtype=np.float32)
+        return assemble_audio(sent_audios, gaps) if sent_audios else np.zeros(0, dtype=np.float32)
+
+    turn_audios: list[np.ndarray] = []
+    for turn in episode.turns:
+        host = config.hosts[turn.speaker]
+        # A turn is a sequence of speech segments and scripted [pause] beats.
+        segments = [
+            render_speech(val, host.voice) if kind == "speech" else silence(int(val))
+            for kind, val in parse_pauses(turn.text, config.beat_pause_ms)
+        ]
+        mono = np.concatenate(segments) if segments else np.zeros(0, dtype=np.float32)
         mono = apply_drift(mono, rng, config.drift_db)
         mono = apply_gain(mono, rng.uniform(-config.gain_jitter_db, config.gain_jitter_db))
         turn_audios.append(pan_stereo(mono, host.pan))
-    pauses = [
-        int(config.sample_rate * rng.integers(config.pause_min_ms, config.pause_max_ms + 1) / 1000)
-        for _ in range(len(turn_audios) - 1)
-    ]
+    # Inter-turn gap: scripted pause_after if set, else random (negative = overlap).
+    pauses = []
+    for i in range(len(turn_audios) - 1):
+        pa = episode.turns[i].pause_after
+        ms = pa if pa is not None else int(rng.integers(config.pause_min_ms, config.pause_max_ms + 1))
+        pauses.append(int(sr * ms / 1000))
     mix = add_room_tone(assemble_audio(turn_audios, pauses), rng, config.room_tone_db)
     return to_int16(mix)
 

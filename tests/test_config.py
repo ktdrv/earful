@@ -31,7 +31,7 @@ def test_load_config_reads_toml_and_env(tmp_path, monkeypatch):
     assert c.podcast.explicit is False
     assert c.voices["host_a"] == "am_michael"
     assert c.speed == 1.05  # slightly-faster default when unset
-    assert c.sentence_pause_ms == 160
+    assert c.sentence_pause_ms == 100 and c.beat_pause_ms == 400
     assert c.pause_min_ms == -100 and c.pause_max_ms == 500  # organic-variation defaults
     assert c.gain_jitter_db == 2.0
     assert c.drift_db == 1.5 and c.room_tone_db == -50.0 and c.mic_chain is True
