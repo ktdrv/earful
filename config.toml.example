@@ -17,13 +17,13 @@ link = ""
 name = "Theo"
 voice = "am_puck"
 pan = -0.15   # stereo placement: -1 left .. +1 right
-persona = "The curious driver. Brings energy, asks the naive but sharp question, wants concrete examples, gently pushes back on hype. Shorter, punchier lines."
+persona = "The one with skin in the game. Pragmatic, a little anxious, allergic to hype; wants what actually works and will argue or admit when he's been talked out of something. Shorter, punchier lines; reacts fast."
 
 [hosts.host_b]
 name = "Mara"
 voice = "af_heart"
 pan = 0.15
-persona = "The seasoned expert. Grounds things in specifics and numbers, gives the nuanced take, occasionally wry. Slightly longer, structured explanations."
+persona = "The one who's actually done it. Grounds things in specifics and numbers, challenges romantic assumptions and lazy fears with tough-love, reassures with evidence. Occasionally wry. Longer, structured turns when making a real point."
 
 [tts]
 model = "mlx-community/Kokoro-82M-bf16"

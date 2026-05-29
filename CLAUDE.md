@@ -18,10 +18,29 @@ and write every line in that voice. Currently:
 - **host_b = Mara** — seasoned expert: grounds things in specifics/numbers, nuanced,
   occasionally wry; slightly longer structured explanations.
 
-Let their dynamic show: Theo drives and probes, Mara delivers the grounded take, and
-they can mildly disagree or build on each other. They may address each other by first
-name occasionally (sparingly — it's easy to overdo). Keep them distinct in rhythm and
-vocabulary, not interchangeable.
+### Two people, not one script (the most important rule)
+The failure mode to avoid at all costs: writing one explanation and slicing it
+across two voices, where each host just completes the other's thought and passes the
+ball. That sounds exactly like what it is — a single essay read aloud by two people.
+
+Instead, write an actual conversation between two people who hold their own points of
+view (which may align OR clash):
+- **Each host reacts to what the other just said** — agrees and adds, qualifies,
+  gets surprised, or pushes back — before introducing anything new. The thread is
+  reactive, not a relay race of facts.
+- **Give them real stances.** They should sometimes disagree, challenge an
+  assumption, or come at it from a different angle ("I'd push back on that," "okay
+  but here's what I keep seeing," "that's actually annoying because you're right").
+  Let one talk the other out of something.
+- **Asymmetry is the point.** One host might monologue for five sentences while the
+  other just says "Go on." or "Brutal." Their turn lengths and rhythms should differ.
+- **They are different people.** Different vocabulary, different worries, different
+  things they get excited about. Theo is the one with skin in the game asking the
+  anxious, practical questions; Mara is the one who's seen it and grounds or
+  complicates his assumptions. Don't let them blur into one neutral narrator.
+- Use callbacks, a cold open mid-thought, light humor, and first names occasionally
+  (sparingly). If you could swap who says each line without anyone noticing, you've
+  written it wrong.
 
 Schema:
 ```json
@@ -36,8 +55,12 @@ Schema:
 }
 ```
 Rules:
-- Each turn is short: ~1-2 sentences, roughly <=250 characters. This keeps each
-  turn under Kokoro's ~510-token synthesis limit and sounds natural.
+- **Let each turn be as long as the thought needs — and vary it hard.** A turn
+  might be one word ("Brutal.") or five sentences when a host is making a real
+  point. Do NOT chop everything into even, ~equal lines; that's what makes it sound
+  like one script read by two voices. (Kokoro auto-chunks long turns at sentence
+  boundaries, so length is not a technical concern — keep turns under ~3 sentences
+  only if you want zero chance of a faint mid-turn seam.)
 - Plan in `scratchpad` first, then write turns.
 - Target ~12-18 minutes (~2000-2800 words total across both hosts).
 - Open with a brief hook, close with a short recap.
