@@ -1,0 +1,12 @@
+boto3
+python-dotenv
+numpy
+soundfile
+mlx-audio
+# Kokoro G2P runtime deps pulled in by mlx-audio's misaki backend but not
+# declared by it; pin explicitly so synthesis works on a fresh install.
+spacy
+phonemizer
+pillow
+pytest
+defusedxml

@@ -1,0 +1,15 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+# generated audio + local feed artifacts
+out/
+*.mp3
+*.wav
+
+# transient per-episode working file (schema documented in CLAUDE.md)
+episode.json
+
+# personal podcast config — copy from config.toml.example
+config.toml

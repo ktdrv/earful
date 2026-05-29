@@ -1,0 +1,24 @@
+# Copy to config.toml and edit. config.toml is gitignored (it holds your
+# podcast's identity); this example is the template.
+
+[podcast]
+title = "Earful"
+description = "AI-produced episodes on whatever I want to learn next."
+author = "Your Name"
+email = "you@example.com"
+language = "en-us"
+explicit = false
+category = "Education"
+link = ""
+
+[voices]
+# Kokoro voice IDs. Browse options in the mlx-audio / Kokoro docs.
+# Prefixes: am_/af_ = US male/female, bm_/bf_ = UK male/female.
+host_a = "am_michael"
+host_b = "af_heart"
+
+[tts]
+model = "mlx-community/Kokoro-82M-bf16"
+lang_code = "a"
+pause_ms = 400
+sample_rate = 24000
