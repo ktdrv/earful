@@ -52,8 +52,8 @@ Write an `episode.json`:
   "title": "Episode title",
   "description": "Shown in the podcast app",
   "turns": [
-    {"speaker": "host_a", "text": "Short, ~1-2 sentence line."},
-    {"speaker": "host_b", "text": "The other host responds."}
+    {"speaker": "host_a", "text": "Wait, so you're telling me the model was the easy part?"},
+    {"speaker": "host_b", "text": "That's exactly what I'm telling you. The hard part was getting anyone to trust it -- and that took months, not the two weeks everyone budgeted for."}
   ]
 }
 ```
@@ -68,9 +68,13 @@ python produce.py episode.json --dry-run  # render to out/ locally, skip upload
 Subscribe your podcast app to `<R2_PUBLIC_URL_BASE>/feed.xml` once. Every future
 episode appears automatically.
 
-Keep turns short (~250 chars) so each stays under Kokoro's synthesis limit and
-sounds natural. `CLAUDE.md` documents the LLM-driven authoring procedure if you
-drive this with Claude Code.
+Write it as a real conversation between two distinct people, not one explanation
+split across two voices — vary turn length freely (one-word reactions through
+multi-sentence points). Kokoro auto-chunks long turns at sentence boundaries, so
+there's no hard length limit per turn; only its ~510-phoneme-token *synthesis* cap
+matters, and that only bites a single turn longer than a few sentences.
+`CLAUDE.md` documents the full LLM-driven authoring procedure (personas, pacing,
+pronunciation overrides) if you drive this with Claude Code.
 
 ## Tests
 
