@@ -53,7 +53,9 @@ class Config:
     drift_db: float       # intra-turn slow level drift (mic-movement feel)
     room_tone_db: float   # faint noise-floor level; <= -120 disables
     breath_db: float      # level of a scripted [breath] inhale
-    mic_chain: bool       # apply gentle highpass + compression on export
+    plosive_db: float     # level of simulated plosive pops; <= -120 disables
+    plosive_prob: float   # chance a plosive-initial sentence gets a pop
+    mic_chain: bool       # apply the physical-mic tone chain on export
     r2: R2Creds
 
 
@@ -111,6 +113,8 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         drift_db=float(tts.get("drift_db", 1.5)),
         room_tone_db=float(tts.get("room_tone_db", -50.0)),
         breath_db=float(tts.get("breath_db", -28.0)),
+        plosive_db=float(tts.get("plosive_db", -22.0)),
+        plosive_prob=float(tts.get("plosive_prob", 0.4)),
         mic_chain=bool(tts.get("mic_chain", True)),
         r2=r2,
     )

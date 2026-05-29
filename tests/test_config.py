@@ -36,6 +36,7 @@ def test_load_config_reads_toml_and_env(tmp_path, monkeypatch):
     assert c.gain_jitter_db == 2.0
     assert c.drift_db == 1.5 and c.room_tone_db == -50.0 and c.mic_chain is True
     assert c.breath_db == -28.0
+    assert c.plosive_db == -22.0 and c.plosive_prob == 0.4
     assert c.r2.bucket == "val-R2_BUCKET"
     assert c.r2.public_base == "https://pub-x.r2.dev"  # trailing slash stripped
     # [voices] fallback: hosts derived with name == id, empty persona

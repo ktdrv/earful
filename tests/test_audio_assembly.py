@@ -70,6 +70,24 @@ def test_breath_sound_is_short_and_faint():
     assert 0 < np.max(np.abs(b)) < 0.1  # faint
 
 
+def test_starts_with_plosive():
+    assert tts.starts_with_plosive("Brutal.") is True
+    assert tts.starts_with_plosive("'Knew it.") is True  # leading punctuation skipped; K is plosive
+    assert tts.starts_with_plosive("Totally.") is True
+    assert tts.starts_with_plosive("Honestly, no.") is False
+    assert tts.starts_with_plosive('"Exactly."') is False
+    assert tts.starts_with_plosive("") is False
+
+
+def test_add_plosive_only_touches_onset_region():
+    mono = np.zeros(24000, dtype=np.float32)
+    mono[1000:] = 0.5  # onset at sample 1000
+    out = tts.add_plosive(mono, np.random.default_rng(0), 24000, -22.0)
+    assert np.array_equal(out[:1000], mono[:1000])  # nothing added before onset
+    assert not np.array_equal(out[1000:1100], mono[1000:1100])  # pop mixed in at onset
+    assert tts.add_plosive(mono, np.random.default_rng(0), 24000, -130) is not None  # disabled path safe
+
+
 def test_split_sentences_keeps_abbreviations_intact():
     assert tts.split_sentences("Huh. Okay, but here's the thing.") == ["Huh.", "Okay, but here's the thing."]
     # periods inside A.I. and trailing punctuation must not over-split

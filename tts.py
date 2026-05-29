@@ -41,6 +41,40 @@ def parse_script(text: str, default_pause_ms: int) -> list[tuple[str, object]]:
     return parts
 
 
+_PLOSIVES = set("pbtdkgc")
+
+
+def starts_with_plosive(text: str) -> bool:
+    for ch in text.lower():
+        if ch.isalpha():
+            return ch in _PLOSIVES
+    return False
+
+
+def plosive_pop(rng: np.random.Generator, sample_rate: int, level_db: float) -> np.ndarray:
+    """A short low-frequency thump — the air-on-capsule pop of a plosive consonant."""
+    n = int(sample_rate * 0.06)
+    if n <= 0:
+        return np.zeros(0, dtype=np.float32)
+    idx = np.arange(n)
+    freq = rng.uniform(80.0, 120.0)
+    pop = np.sin(2 * np.pi * freq * idx / sample_rate) * np.exp(-idx / (sample_rate * 0.012))
+    pop = pop / (np.max(np.abs(pop)) + 1e-9)
+    return ((10.0 ** (level_db / 20.0)) * pop).astype(np.float32)
+
+
+def add_plosive(mono: np.ndarray, rng: np.random.Generator, sample_rate: int, level_db: float) -> np.ndarray:
+    """Mix a plosive pop in at the speech onset (where the consonant burst lands)."""
+    if level_db <= -120 or mono.size == 0:
+        return mono
+    pop = plosive_pop(rng, sample_rate, level_db)
+    onset = int(np.argmax(np.abs(mono) > 0.02))  # first audible sample
+    out = mono.copy()
+    end = min(onset + len(pop), len(out))
+    out[onset:end] += pop[: end - onset]
+    return out
+
+
 def breath_sound(rng: np.random.Generator, sample_rate: int, level_db: float) -> np.ndarray:
     """A short, soft synthesized inhale (band-limited noise under an asymmetric
     envelope). A best-effort imitation — subtle by design."""
@@ -158,7 +192,10 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
                 for r in model.generate(text=sentence, voice=voice, lang_code=config.lang_code, speed=speed)
             ]
             if chunks:
-                sent_audios.append(np.concatenate(chunks))
+                sentence_audio = np.concatenate(chunks)
+                if config.plosive_db > -120 and starts_with_plosive(sentence) and rng.random() < config.plosive_prob:
+                    sentence_audio = add_plosive(sentence_audio, rng, sr, config.plosive_db)
+                sent_audios.append(sentence_audio)
         gaps = [
             max(0, int(sr * rng.integers(config.sentence_pause_ms - 40, config.sentence_pause_ms + 41) / 1000))
             for _ in range(len(sent_audios) - 1)
@@ -204,7 +241,9 @@ def write_mp3(samples_int16: np.ndarray, sample_rate: int, mp3_path: str, tags: 
         sf.write(wav_path, samples_int16, sample_rate, subtype="PCM_16")
         cmd = ["ffmpeg", "-y", "-i", wav_path, "-codec:a", "libmp3lame", "-b:a", "128k"]
         if mic_chain:
-            cmd += ["-af", "highpass=f=80,acompressor=threshold=-20dB:ratio=2:attack=20:release=300,treble=g=-1:f=10000"]
+            # Physical-mic chain: rumble filter, proximity body, gentle leveling,
+            # presence lift + harmonic exciter to bring out consonant/plosive detail.
+            cmd += ["-af", "highpass=f=70,bass=g=2:f=110,acompressor=threshold=-20dB:ratio=2:attack=20:release=300,treble=g=2.5:f=6500,aexciter=amount=1.2:drive=5:freq=7000:blend=1"]
         for k, v in tags.items():
             cmd += ["-metadata", f"{k}={v}"]
         cmd.append(mp3_path)
