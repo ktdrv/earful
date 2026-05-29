@@ -50,15 +50,24 @@ def test_episode_seed_is_stable_and_content_derived():
     assert tts._episode_seed(e1) != tts._episode_seed(e3)
 
 
-def test_parse_pauses_extracts_beats():
-    assert tts.parse_pauses("Hello world.", 400) == [("speech", "Hello world.")]
-    assert tts.parse_pauses("Don't buy it. [pause] Why not?", 400) == [
+def test_parse_script_extracts_beats_and_breaths():
+    assert tts.parse_script("Hello world.", 400) == [("speech", "Hello world.")]
+    assert tts.parse_script("Don't buy it. [pause] Why not?", 400) == [
         ("speech", "Don't buy it."), ("pause", 400), ("speech", "Why not?")
     ]
-    assert tts.parse_pauses("Wait [pause:750] for it.", 400) == [
+    assert tts.parse_script("Wait [pause:750] for it.", 400) == [
         ("speech", "Wait"), ("pause", 750), ("speech", "for it.")
     ]
-    assert tts.parse_pauses("[pause:300]", 400) == [("pause", 300)]
+    assert tts.parse_script("[pause:300]", 400) == [("pause", 300)]
+    assert tts.parse_script("Okay. [breath] So.", 400) == [
+        ("speech", "Okay."), ("breath", 0), ("speech", "So.")
+    ]
+
+
+def test_breath_sound_is_short_and_faint():
+    b = tts.breath_sound(np.random.default_rng(0), 24000, -28.0)
+    assert 0 < len(b) <= 24000  # under a second
+    assert 0 < np.max(np.abs(b)) < 0.1  # faint
 
 
 def test_split_sentences_keeps_abbreviations_intact():

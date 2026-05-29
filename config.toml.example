@@ -39,4 +39,5 @@ speed_jitter = 0.04   # +/- fraction of speed per turn
 gain_jitter_db = 2.0  # +/- dB per turn (mic-distance / turning-to-cohost feel)
 drift_db = 1.5        # slow level drift WITHIN a turn
 room_tone_db = -60.0  # faint pink-noise floor; <= -120 disables
+breath_db = -28.0     # level of a scripted [breath] inhale
 mic_chain = true      # gentle highpass + compression on export

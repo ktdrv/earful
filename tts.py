@@ -17,24 +17,42 @@ def split_sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
 
 
-_PAUSE_RE = re.compile(r"\[pause(?::(\d+))?\]", re.IGNORECASE)
+_TOKEN_RE = re.compile(r"\[pause(?::(\d+))?\]|\[breath\]", re.IGNORECASE)
 
 
-def parse_pauses(text: str, default_ms: int) -> list[tuple[str, object]]:
-    """Split text on inline [pause] / [pause:Nms] markers into an ordered list of
-    ("speech", str) and ("pause", ms) parts. Markers are removed from the spoken text."""
+def parse_script(text: str, default_pause_ms: int) -> list[tuple[str, object]]:
+    """Split text on inline [pause] / [pause:Nms] / [breath] markers into an ordered
+    list of ("speech", str), ("pause", ms), and ("breath", 0) parts. Markers are
+    removed from the spoken text."""
     parts: list[tuple[str, object]] = []
     last = 0
-    for m in _PAUSE_RE.finditer(text):
+    for m in _TOKEN_RE.finditer(text):
         seg = text[last:m.start()].strip()
         if seg:
             parts.append(("speech", seg))
-        parts.append(("pause", int(m.group(1)) if m.group(1) else default_ms))
+        if m.group(0).lower().startswith("[breath"):
+            parts.append(("breath", 0))
+        else:
+            parts.append(("pause", int(m.group(1)) if m.group(1) else default_pause_ms))
         last = m.end()
     tail = text[last:].strip()
     if tail:
         parts.append(("speech", tail))
     return parts
+
+
+def breath_sound(rng: np.random.Generator, sample_rate: int, level_db: float) -> np.ndarray:
+    """A short, soft synthesized inhale (band-limited noise under an asymmetric
+    envelope). A best-effort imitation — subtle by design."""
+    n = int(sample_rate * 0.28)
+    if n <= 0:
+        return np.zeros(0, dtype=np.float32)
+    noise = np.convolve(rng.standard_normal(n), np.ones(64) / 64, mode="same").astype(np.float32)
+    t = np.linspace(0.0, 1.0, n)
+    env = np.sqrt(t) * (1.0 - t) ** 1.2  # quick rise, slower fall = inhale shape
+    breath = noise * (env / (env.max() + 1e-9))
+    breath = breath / (np.max(np.abs(breath)) + 1e-9)
+    return ((10.0 ** (level_db / 20.0)) * breath).astype(np.float32)
 
 
 def assemble_audio(turn_audios: list[np.ndarray], pauses: list[int]) -> np.ndarray:
@@ -127,13 +145,14 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
     def silence(ms: int) -> np.ndarray:
         return np.zeros(max(0, int(sr * ms / 1000)), dtype=np.float32)
 
-    def render_speech(text: str, voice: str) -> np.ndarray:
+    def render_speech(text: str, voice: str, fixed_speed: float | None) -> np.ndarray:
         # Synthesize each sentence separately so we (a) control the gap between them
         # and (b) vary the speaking pace per sentence — real speech speeds up and
-        # slows down within a paragraph, it isn't uniform.
+        # slows down within a paragraph, it isn't uniform. A fixed_speed (per-line
+        # override) pins the pace for deliberate emphasis instead of jittering it.
         sent_audios: list[np.ndarray] = []
         for sentence in split_sentences(text):
-            speed = config.speed * (1.0 + rng.uniform(-config.speed_jitter, config.speed_jitter))
+            speed = fixed_speed if fixed_speed is not None else config.speed * (1.0 + rng.uniform(-config.speed_jitter, config.speed_jitter))
             chunks = [
                 np.asarray(r.audio, dtype=np.float32).reshape(-1)
                 for r in model.generate(text=sentence, voice=voice, lang_code=config.lang_code, speed=speed)
@@ -146,17 +165,25 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
         ]
         return assemble_audio(sent_audios, gaps) if sent_audios else np.zeros(0, dtype=np.float32)
 
+    def render_part(kind: str, val: object, voice: str, fixed_speed: float | None) -> np.ndarray:
+        if kind == "speech":
+            return render_speech(str(val), voice, fixed_speed)
+        if kind == "breath":
+            return breath_sound(rng, sr, config.breath_db)
+        return silence(int(val))  # pause
+
     turn_audios: list[np.ndarray] = []
     for turn in episode.turns:
         host = config.hosts[turn.speaker]
-        # A turn is a sequence of speech segments and scripted [pause] beats.
+        # A turn is a sequence of speech segments, scripted [pause] beats, and [breath]s.
         segments = [
-            render_speech(val, host.voice) if kind == "speech" else silence(int(val))
-            for kind, val in parse_pauses(turn.text, config.beat_pause_ms)
+            render_part(kind, val, host.voice, turn.speed)
+            for kind, val in parse_script(turn.text, config.beat_pause_ms)
         ]
         mono = np.concatenate(segments) if segments else np.zeros(0, dtype=np.float32)
         mono = apply_drift(mono, rng, config.drift_db)
-        mono = apply_gain(mono, rng.uniform(-config.gain_jitter_db, config.gain_jitter_db))
+        gain_db = turn.gain_db if turn.gain_db is not None else rng.uniform(-config.gain_jitter_db, config.gain_jitter_db)
+        mono = apply_gain(mono, gain_db)
         turn_audios.append(pan_stereo(mono, host.pan))
     # Inter-turn gap: scripted pause_after if set, else random (negative = overlap).
     pauses = []

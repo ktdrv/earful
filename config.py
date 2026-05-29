@@ -52,6 +52,7 @@ class Config:
     gain_jitter_db: float
     drift_db: float       # intra-turn slow level drift (mic-movement feel)
     room_tone_db: float   # faint noise-floor level; <= -120 disables
+    breath_db: float      # level of a scripted [breath] inhale
     mic_chain: bool       # apply gentle highpass + compression on export
     r2: R2Creds
 
@@ -109,6 +110,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         gain_jitter_db=float(tts.get("gain_jitter_db", 2.0)),  # +/- dB per turn (mic-distance feel)
         drift_db=float(tts.get("drift_db", 1.5)),
         room_tone_db=float(tts.get("room_tone_db", -50.0)),
+        breath_db=float(tts.get("breath_db", -28.0)),
         mic_chain=bool(tts.get("mic_chain", True)),
         r2=r2,
     )
