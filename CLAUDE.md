@@ -27,11 +27,34 @@ Rules:
 - Each turn is short: ~1-2 sentences, roughly <=250 characters. This keeps each
   turn under Kokoro's ~510-token synthesis limit and sounds natural.
 - Plan in `scratchpad` first, then write turns.
-- Conversational, with natural give-and-take; the two hosts build on each other.
 - Target ~12-18 minutes (~2000-2800 words total across both hosts).
 - Open with a brief hook, close with a short recap.
-- No stage directions, sound-effect cues, or markdown inside `text` — plain spoken
-  sentences only (it all gets read aloud verbatim).
+
+Write for the EAR, not the page — this is the single biggest lever on how natural
+it sounds:
+- **Use contractions everywhere.** "it's", "you're", "don't", "let's", "we'll",
+  "that's", "here's". Never write "let us", "you are", "do not", "it is" — formal
+  uninflected phrasing is what makes TTS sound robotic.
+- **Sprinkle light discourse markers and fillers**, sparingly: "right", "yeah",
+  "I mean", "honestly", "look", "so", "okay so". A little goes a long way.
+- **Use short reactive back-channels** between longer turns: "Right." "Exactly."
+  "Totally." "Ha, yeah." "Wait, really?" They make it feel like a real exchange.
+- **Vary sentence length and rhythm.** Mix a punchy 4-word line with a longer one.
+  Don't let every turn be the same shape.
+- **Punctuation IS prosody.** Commas = short pauses, periods/ellipses = longer
+  beats, question marks = rising intonation, em-dashes = a quick break. Use them
+  deliberately to control pacing.
+- Keep most sentences under ~20-25 words; the model handles shorter spoken units best.
+- **Fixing pronunciation:** for jargon, acronyms, or proper nouns the model mangles,
+  use misaki's inline override syntax in the text: `[word](/ˈIPA/)`, e.g.
+  `[Kubernetes](/kˈubɚnˌɛtɪs/)`. Spell acronyms with periods to force letter reading
+  (e.g. `A.I.`). Spell out numbers when natural ("twenty twenty five", not "2025").
+- No stage directions or sound-effect cues inside `text` — only spoken words and the
+  override syntax above get read.
+
+Note: the pipeline already adds subtle organic variation automatically (per-turn
+speed, level, and pause length, including occasional overlap). Don't try to encode
+pauses or emphasis with extra punctuation hacks beyond normal writing.
 
 ## 3. Produce and publish
 ```bash

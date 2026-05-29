@@ -33,9 +33,12 @@ class Config:
     voices: dict[str, str]
     tts_model: str
     lang_code: str
-    pause_ms: int
+    pause_min_ms: int
+    pause_max_ms: int
     sample_rate: int
     speed: float
+    speed_jitter: float
+    gain_jitter_db: float
     r2: R2Creds
 
 
@@ -73,8 +76,11 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         voices=dict(data["voices"]),
         tts_model=tts.get("model", "mlx-community/Kokoro-82M-bf16"),
         lang_code=tts.get("lang_code", "a"),
-        pause_ms=int(tts.get("pause_ms", 400)),
+        pause_min_ms=int(tts.get("pause_min_ms", -100)),  # negative => brief overlap (hosts talk over)
+        pause_max_ms=int(tts.get("pause_max_ms", 500)),
         sample_rate=int(tts.get("sample_rate", 24000)),
         speed=float(tts.get("speed", 1.1)),  # 10% faster than Kokoro's 1.0 default
+        speed_jitter=float(tts.get("speed_jitter", 0.04)),  # +/- fraction per turn
+        gain_jitter_db=float(tts.get("gain_jitter_db", 2.0)),  # +/- dB per turn (mic-distance feel)
         r2=r2,
     )
