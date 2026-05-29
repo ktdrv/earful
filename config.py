@@ -35,6 +35,7 @@ class Config:
     lang_code: str
     pause_ms: int
     sample_rate: int
+    speed: float
     r2: R2Creds
 
 
@@ -74,5 +75,6 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         lang_code=tts.get("lang_code", "a"),
         pause_ms=int(tts.get("pause_ms", 400)),
         sample_rate=int(tts.get("sample_rate", 24000)),
+        speed=float(tts.get("speed", 1.1)),  # 10% faster than Kokoro's 1.0 default
         r2=r2,
     )

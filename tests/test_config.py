@@ -31,6 +31,7 @@ def test_load_config_reads_toml_and_env(tmp_path, monkeypatch):
     assert c.podcast.explicit is False
     assert c.voices["host_a"] == "am_michael"
     assert c.pause_ms == 400
+    assert c.speed == 1.1  # 10%-faster default when unset
     assert c.r2.bucket == "val-R2_BUCKET"
     assert c.r2.public_base == "https://pub-x.r2.dev"  # trailing slash stripped
 

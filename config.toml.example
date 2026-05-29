@@ -22,3 +22,4 @@ model = "mlx-community/Kokoro-82M-bf16"
 lang_code = "a"
 pause_ms = 400
 sample_rate = 24000
+speed = 1.1  # 1.0 = Kokoro default; >1 speaks faster

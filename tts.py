@@ -37,7 +37,7 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
         voice = config.voices[turn.speaker]
         chunks = [
             np.asarray(r.audio, dtype=np.float32).reshape(-1)
-            for r in model.generate(text=turn.text, voice=voice, lang_code=config.lang_code)
+            for r in model.generate(text=turn.text, voice=voice, lang_code=config.lang_code, speed=config.speed)
         ]
         turn_audios.append(np.concatenate(chunks) if chunks else np.zeros(0, dtype=np.float32))
     return to_int16(assemble_audio(turn_audios, pause_samples))
