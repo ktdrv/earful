@@ -50,6 +50,14 @@ def test_episode_seed_is_stable_and_content_derived():
     assert tts._episode_seed(e1) != tts._episode_seed(e3)
 
 
+def test_split_sentences_keeps_abbreviations_intact():
+    assert tts.split_sentences("Huh. Okay, but here's the thing.") == ["Huh.", "Okay, but here's the thing."]
+    # periods inside A.I. and trailing punctuation must not over-split
+    assert tts.split_sentences("It's applied A.I., basically.") == ["It's applied A.I., basically."]
+    assert tts.split_sentences("Wait, really? Yeah.") == ["Wait, really?", "Yeah."]
+    assert tts.split_sentences("") == []
+
+
 def test_pan_stereo_positions():
     mono = np.ones(8, dtype=np.float32)
     center = tts.pan_stereo(mono, 0.0)

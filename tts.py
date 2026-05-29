@@ -1,5 +1,6 @@
 import hashlib
 import os
+import re
 import subprocess
 import tempfile
 
@@ -8,6 +9,12 @@ import soundfile as sf
 
 from config import Config
 from episode import Episode
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split a turn into sentences at . ! ? boundaries (keeping the punctuation).
+    Won't split inside 'A.I.' or numbers since those periods aren't followed by space."""
+    return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
 
 
 def assemble_audio(turn_audios: list[np.ndarray], pauses: list[int]) -> np.ndarray:
@@ -99,11 +106,23 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
     for turn in episode.turns:
         host = config.hosts[turn.speaker]
         speed = config.speed * (1.0 + rng.uniform(-config.speed_jitter, config.speed_jitter))
-        chunks = [
-            np.asarray(r.audio, dtype=np.float32).reshape(-1)
-            for r in model.generate(text=turn.text, voice=host.voice, lang_code=config.lang_code, speed=speed)
+        # Synthesize each sentence separately so we control the pause between them —
+        # Kokoro's own end-of-sentence gap is short and gets shrunk further by speed,
+        # which made interjections ("Huh.") run into the next sentence.
+        sentences = split_sentences(turn.text)
+        sent_audios: list[np.ndarray] = []
+        for sentence in sentences:
+            chunks = [
+                np.asarray(r.audio, dtype=np.float32).reshape(-1)
+                for r in model.generate(text=sentence, voice=host.voice, lang_code=config.lang_code, speed=speed)
+            ]
+            if chunks:
+                sent_audios.append(np.concatenate(chunks))
+        gaps = [
+            int(config.sample_rate * max(0, rng.integers(config.sentence_pause_ms - 40, config.sentence_pause_ms + 41)) / 1000)
+            for _ in range(len(sent_audios) - 1)
         ]
-        mono = np.concatenate(chunks) if chunks else np.zeros(0, dtype=np.float32)
+        mono = assemble_audio(sent_audios, gaps) if sent_audios else np.zeros(0, dtype=np.float32)
         mono = apply_drift(mono, rng, config.drift_db)
         mono = apply_gain(mono, rng.uniform(-config.gain_jitter_db, config.gain_jitter_db))
         turn_audios.append(pan_stereo(mono, host.pan))
@@ -124,7 +143,7 @@ def write_mp3(samples_int16: np.ndarray, sample_rate: int, mp3_path: str, tags: 
         sf.write(wav_path, samples_int16, sample_rate, subtype="PCM_16")
         cmd = ["ffmpeg", "-y", "-i", wav_path, "-codec:a", "libmp3lame", "-b:a", "128k"]
         if mic_chain:
-            cmd += ["-af", "highpass=f=80,acompressor=threshold=-18dB:ratio=2.5:attack=15:release=250,treble=g=-1.5:f=9000"]
+            cmd += ["-af", "highpass=f=80,acompressor=threshold=-20dB:ratio=2:attack=20:release=300,treble=g=-1:f=10000"]
         for k, v in tags.items():
             cmd += ["-metadata", f"{k}={v}"]
         cmd.append(mp3_path)
