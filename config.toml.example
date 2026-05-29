@@ -11,11 +11,17 @@ explicit = false
 category = "Education"
 link = ""
 
-[voices]
-# Kokoro voice IDs. Browse options in the mlx-audio / Kokoro docs.
-# Prefixes: am_/af_ = US male/female, bm_/bf_ = UK male/female.
-host_a = "am_puck"
-host_b = "af_heart"
+# Each host is a character: a name, a Kokoro voice, and a persona that shapes how
+# the script is written. Voice prefixes: am_/af_ = US male/female, bm_/bf_ = UK.
+[hosts.host_a]
+name = "Theo"
+voice = "am_puck"
+persona = "The curious driver. Brings energy, asks the naive but sharp question, wants concrete examples, gently pushes back on hype. Shorter, punchier lines."
+
+[hosts.host_b]
+name = "Mara"
+voice = "af_heart"
+persona = "The seasoned expert. Grounds things in specifics and numbers, gives the nuanced take, occasionally wry. Slightly longer, structured explanations."
 
 [tts]
 model = "mlx-community/Kokoro-82M-bf16"

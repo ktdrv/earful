@@ -28,9 +28,17 @@ class R2Creds:
 
 
 @dataclass(frozen=True)
+class Host:
+    name: str
+    voice: str
+    persona: str  # used by the script-authoring step to write this host in character
+
+
+@dataclass(frozen=True)
 class Config:
     podcast: Podcast
-    voices: dict[str, str]
+    hosts: dict[str, Host]
+    voices: dict[str, str]  # derived {host_id: voice}; what tts.synthesize consumes
     tts_model: str
     lang_code: str
     pause_min_ms: int
@@ -58,6 +66,14 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
     )
     tts = data.get("tts", {})
 
+    # Hosts: prefer the [hosts.*] tables (name + voice + persona). Fall back to a
+    # bare [voices] table for backward compatibility (name defaults to the id).
+    if "hosts" in data:
+        hosts = {hid: Host(name=h["name"], voice=h["voice"], persona=h.get("persona", "")) for hid, h in data["hosts"].items()}
+    else:
+        hosts = {hid: Host(name=hid, voice=v, persona="") for hid, v in data.get("voices", {}).items()}
+    voices = {hid: h.voice for hid, h in hosts.items()}
+
     def env(key: str) -> str:
         v = os.getenv(key)
         if not v:
@@ -73,7 +89,8 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
     )
     return Config(
         podcast=podcast,
-        voices=dict(data["voices"]),
+        hosts=hosts,
+        voices=voices,
         tts_model=tts.get("model", "mlx-community/Kokoro-82M-bf16"),
         lang_code=tts.get("lang_code", "a"),
         pause_min_ms=int(tts.get("pause_min_ms", -100)),  # negative => brief overlap (hosts talk over)

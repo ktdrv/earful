@@ -10,7 +10,19 @@ stopping for review (one-shot):
   do fuller research (search + fetch a few good sources) before writing.
 
 ## 2. Write the script to `episode.json`
-Two-host conversation between `host_a` and `host_b` (symmetric — no host/guest).
+Two-host conversation between `host_a` and `host_b`. **Each host is a defined
+character** — read their `name` and `persona` from `config.toml` under `[hosts.*]`
+and write every line in that voice. Currently:
+- **host_a = Theo** — curious driver: energy, sharp naive questions, wants concrete
+  examples, gently pushes back on hype; shorter punchier lines.
+- **host_b = Mara** — seasoned expert: grounds things in specifics/numbers, nuanced,
+  occasionally wry; slightly longer structured explanations.
+
+Let their dynamic show: Theo drives and probes, Mara delivers the grounded take, and
+they can mildly disagree or build on each other. They may address each other by first
+name occasionally (sparingly — it's easy to overdo). Keep them distinct in rhythm and
+vocabulary, not interchangeable.
+
 Schema:
 ```json
 {
