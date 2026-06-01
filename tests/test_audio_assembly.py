@@ -16,6 +16,23 @@ def test_assemble_single_turn_has_no_gap():
     assert len(tts.assemble_audio([a], [])) == 10
 
 
+def test_trim_silence_strips_padding_but_keeps_margin():
+    sr = 24000
+    pad = np.zeros(sr, dtype=np.float32)  # 1s of silence each side
+    speech = np.ones(sr // 2, dtype=np.float32)  # 0.5s of "speech"
+    out = tts.trim_silence(np.concatenate([pad, speech, pad]), sr, keep_ms=15)
+    keep = int(sr * 15 / 1000)
+    assert abs(len(out) - (len(speech) + 2 * keep)) <= 1  # speech + 15ms margin each side
+    assert out.max() == 1.0
+
+
+def test_trim_silence_handles_all_silence_and_empty():
+    sr = 24000
+    silent = np.zeros(1000, dtype=np.float32)
+    assert len(tts.trim_silence(silent, sr)) == 1000  # nothing above threshold -> unchanged
+    assert len(tts.trim_silence(np.zeros(0, dtype=np.float32), sr)) == 0
+
+
 def test_assemble_negative_pause_overlaps_turns():
     a = np.ones(10, dtype=np.float32)
     b = np.ones(20, dtype=np.float32)

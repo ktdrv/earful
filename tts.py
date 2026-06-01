@@ -17,6 +17,37 @@ def split_sentences(text: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s]
 
 
+# A misaki inline phoneme override: [display text](/phonemes/). Same shape misaki's own
+# LINK_REGEX (en.py) matches. We use it to find spans an author already annotated by hand
+# so the dictionary never double-wraps or fights a manual override.
+_OVERRIDE_RE = re.compile(r"\[[^\]]+\]\([^\)]*\)")
+
+
+def apply_pronunciations(text: str, pron: dict[str, str]) -> str:
+    """Wrap every known term with misaki's inline override syntax `[word](/ipa/)`, so
+    recurring jargon and proper nouns are pronounced consistently across every episode
+    without the author hand-annotating each one. Whole-word and case-insensitive; the
+    matched casing is preserved in what's spoken. Any span already inside a manual
+    `[..](..)` override is left untouched, so hand-tuning still wins. Terms must be plain
+    word characters (the dict is for names/jargon, not punctuation-y tokens)."""
+    if not pron:
+        return text
+    # Longest terms first so a multi-word entry wins over a substring of it.
+    terms = sorted(pron, key=len, reverse=True)
+    term_re = re.compile(r"\b(" + "|".join(re.escape(t) for t in terms) + r")\b", re.IGNORECASE)
+    ipa = {k.lower(): v for k, v in pron.items()}
+    def wrap(seg: str) -> str:
+        return term_re.sub(lambda m: f"[{m.group(0)}](/{ipa[m.group(0).lower()]}/)", seg)
+    # Transform only the text OUTSIDE existing overrides; copy those through verbatim.
+    out, last = [], 0
+    for m in _OVERRIDE_RE.finditer(text):
+        out.append(wrap(text[last:m.start()]))
+        out.append(m.group(0))
+        last = m.end()
+    out.append(wrap(text[last:]))
+    return "".join(out)
+
+
 _TOKEN_RE = re.compile(r"\[pause(?::(\d+))?\]|\[breath\]", re.IGNORECASE)
 
 
@@ -89,6 +120,23 @@ def breath_sound(rng: np.random.Generator, sample_rate: int, level_db: float) ->
     return ((10.0 ** (level_db / 20.0)) * breath).astype(np.float32)
 
 
+def trim_silence(mono: np.ndarray, sample_rate: int, threshold: float = 0.01, keep_ms: int = 15) -> np.ndarray:
+    """Trim the near-silence Kokoro pads onto the start/end of every generation, so the
+    gap we insert between sentences is the *only* gap. Without this, Kokoro's own
+    trailing+leading padding stacks on top of our pause and a mid-turn seam sounds far
+    longer than `sentence_pause_ms`. Keeps a small margin each side so we never clip the
+    consonant onset or the word's tail."""
+    if mono.size == 0:
+        return mono
+    above = np.abs(mono) > threshold
+    if not above.any():
+        return mono
+    keep = int(sample_rate * keep_ms / 1000)
+    first = max(0, int(np.argmax(above)) - keep)
+    last = min(len(mono), len(mono) - int(np.argmax(above[::-1])) + keep)
+    return mono[first:last]
+
+
 def assemble_audio(turn_audios: list[np.ndarray], pauses: list[int]) -> np.ndarray:
     """Join per-turn audio with the gaps in `pauses` (one per boundary, in samples).
     A positive gap inserts silence; a negative gap overlaps the turns by that many
@@ -138,22 +186,30 @@ def pan_stereo(mono: np.ndarray, position: float) -> np.ndarray:
     return np.stack([mono * np.cos(angle), mono * np.sin(angle)], axis=1).astype(np.float32)
 
 
-def add_room_tone(stereo: np.ndarray, rng: np.random.Generator, level_db: float) -> np.ndarray:
-    """Mix in faint pink noise so it reads as a real recording, not a silent studio."""
+def add_room_tone(stereo: np.ndarray, rng: np.random.Generator, level_db: float, block: int = 24000 * 30) -> np.ndarray:
+    """Mix in faint pink noise so it reads as a real recording, not a silent studio.
+    The noise is generated in float32 blocks (default ~30s) instead of one FFT over the
+    whole episode, so a 15-minute render doesn't allocate a multi-GB FFT work buffer
+    (a full-length float64 transform was ~1GB transient). Per-block normalization is
+    inaudible at room-tone levels."""
     if level_db <= -120 or len(stereo) == 0:
         return stereo
     n = len(stereo)
     amp = 10.0 ** (level_db / 20.0)
     out = stereo.copy()
     for ch in range(stereo.shape[1]):
-        white = rng.standard_normal(n)
-        spec = np.fft.rfft(white)
-        f = np.arange(len(spec))
-        f[0] = 1
-        pink = np.fft.irfft(spec / np.sqrt(f), n)
-        pink = pink / (np.max(np.abs(pink)) + 1e-9)
-        out[:, ch] += (amp * pink).astype(np.float32)
-    return out.astype(np.float32)
+        pos = 0
+        while pos < n:
+            m = min(block, n - pos)
+            white = rng.standard_normal(m).astype(np.float32)
+            spec = np.fft.rfft(white)
+            freqs = np.arange(len(spec))
+            freqs[0] = 1
+            pink = np.fft.irfft(spec / np.sqrt(freqs), m).astype(np.float32)
+            pink = pink / (np.max(np.abs(pink)) + 1e-9)
+            out[pos:pos + m, ch] += (amp * pink).astype(np.float32)
+            pos += m
+    return out
 
 
 def _episode_seed(episode: Episode) -> int:
@@ -170,9 +226,16 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
     """Render an Episode to a stereo int16 numpy array at config.sample_rate, with
     subtle per-turn variation (speed, level, intra-turn drift, pan, pause) plus a
     faint room-tone bed, for an organic feel."""
+    import mlx.core as mx
     from mlx_audio.tts.utils import load_model
 
     model = load_model(config.tts_model)
+    # Cap MLX's reclaimable cache so it returns memory to the OS instead of letting the
+    # high-water mark climb across a long episode. We also clear after each sentence below;
+    # without this the generate_from_tokens path grows unbounded across varied-size renders.
+    if hasattr(mx, "set_cache_limit"):
+        mx.set_cache_limit(512 * 1024 * 1024)
+    pipeline = model._get_pipeline(config.lang_code)
     rng = np.random.default_rng(_episode_seed(episode))
     sr = config.sample_rate
 
@@ -184,15 +247,28 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
         # and (b) vary the speaking pace per sentence — real speech speeds up and
         # slows down within a paragraph, it isn't uniform. A fixed_speed (per-line
         # override) pins the pace for deliberate emphasis instead of jittering it.
+        text = apply_pronunciations(text, config.pronunciations)
         sent_audios: list[np.ndarray] = []
         for sentence in split_sentences(text):
             speed = fixed_speed if fixed_speed is not None else config.speed * (1.0 + rng.uniform(-config.speed_jitter, config.speed_jitter))
+            # Intervene between misaki's G2P and synthesis: thicken each comma in the phoneme
+            # stream so Kokoro renders a longer pause NATIVELY in one pass — no audio splicing
+            # (avoids mid-word stutter from imprecise timestamps) and no per-clause isolation
+            # (avoids breathy short list items). The model's own duration predictor still shapes
+            # it, so commas keep natural per-position variance; we just lift the floor off
+            # Kokoro's too-short (~38ms) commas. The +0/+1 per comma is the human-pause jitter.
+            _, tokens = pipeline.g2p(sentence)
+            if config.comma_pause_level >= 2:
+                for t in tokens:
+                    if t.phonemes == ",":
+                        t.phonemes = "," * (config.comma_pause_level + int(rng.integers(0, 2)))
             chunks = [
                 np.asarray(r.audio, dtype=np.float32).reshape(-1)
-                for r in model.generate(text=sentence, voice=voice, lang_code=config.lang_code, speed=speed)
+                for r in pipeline.generate_from_tokens(tokens, voice=voice, speed=speed)
             ]
+            mx.clear_cache()  # free this sentence's buffers so the cache doesn't accumulate across the episode
             if chunks:
-                sentence_audio = np.concatenate(chunks)
+                sentence_audio = trim_silence(np.concatenate(chunks), sr)
                 if config.plosive_db > -120 and starts_with_plosive(sentence) and rng.random() < config.plosive_prob:
                     sentence_audio = add_plosive(sentence_audio, rng, sr, config.plosive_db)
                 sent_audios.append(sentence_audio)

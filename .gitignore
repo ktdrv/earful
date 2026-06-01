@@ -13,3 +13,9 @@ episode.json
 
 # personal podcast config — copy from config.toml.example
 config.toml
+
+# local-only notes / scratch
+*.notes.md
+
+# archived episode scripts (one per published episode)
+scripts/

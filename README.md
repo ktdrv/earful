@@ -1,80 +1,113 @@
 # Earful
 
-Turn any topic into a two-host podcast episode you can listen to in your podcast
-app. You write a short script (or have an LLM write it), and Earful synthesizes it
-to audio with a local TTS model, uploads it to object storage, and regenerates a
-standard podcast RSS feed your app subscribes to once.
+Tell Claude Code a topic. Get a two-host podcast episode in your podcast app a few
+minutes later. No studio, no editing, no cloud TTS bill.
 
-The whole loop: **pick a topic → run one command → the episode shows up on your phone.**
-
-## How it works
+**topic → one command → it's on your phone.** Earful voices a short two-person
+script with a local TTS model, masters it to MP3, uploads it to object storage, and
+regenerates a standard RSS feed your podcast app is subscribed to.
 
 ```
-episode.json  ->  produce.py
-                    |- synthesize each turn with Kokoro (mlx-audio), two voices
-                    |- stitch turns + pauses -> MP3 (ffmpeg) with ID3 tags
-                    |- upload MP3 to Cloudflare R2
-                    |- append to episodes.json manifest, regenerate feed.xml
-                    \- upload feed.xml to R2
-                  |
-   Your podcast app (subscribed to the R2 feed URL) polls -> new episode appears
+episode.json ─▶ produce.py
+                 ├─ synthesize each turn with Kokoro (two voices, mlx-audio)
+                 ├─ stitch turns + pauses, master → MP3 (ffmpeg, ID3 tags)
+                 ├─ upload MP3 to object storage (Cloudflare R2 by default)
+                 └─ rebuild episodes.json manifest + feed.xml, upload feed
+                              │
+   your podcast app, subscribed to <PUBLIC_URL>/feed.xml, polls ─▶ new episode appears
 ```
 
-- **TTS:** [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) via
-  [mlx-audio](https://github.com/Blaizzy/mlx-audio) — free, local, fast on Apple
-  Silicon. Swappable: TTS is isolated behind `tts.synthesize(episode, config)`.
-- **Hosting:** Cloudflare R2 (S3-compatible). Any S3-compatible store works with
-  minor changes to `storage.py`.
-- **Feed:** standard RSS 2.0 + iTunes tags — works in any podcast app, not just one.
+- **TTS** — [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) via
+  [mlx-audio](https://github.com/Blaizzy/mlx-audio): free, local, fast on Apple
+  Silicon. Isolated behind `tts.synthesize(episode, config)`, so swapping engines is
+  a one-file change.
+- **Hosting** — any S3-compatible store (R2, AWS S3, Backblaze B2, Spaces, Wasabi,
+  MinIO). R2 is the default because its free tier serves a public URL with no custom
+  domain and no egress fees. See [Hosting](#hosting).
+- **Feed** — plain RSS 2.0 + iTunes tags. Works in every podcast app.
 
-## Setup (macOS / Apple Silicon)
+> **Requires Apple Silicon.** Kokoro runs on Apple's MLX. ffmpeg does the mastering.
+
+## Setup (~5 minutes, mostly the bucket)
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
-brew install ffmpeg espeak-ng           # both fail silently if missing
+brew install ffmpeg espeak-ng          # ffmpeg masters; espeak-ng is the G2P fallback
 
-cp config.toml.example config.toml      # edit podcast name, voices, etc.
-cp .env.example .env                     # fill in your R2 credentials
+cp config.toml.example config.toml     # podcast name, the two hosts + voices
+cp .env.example .env                    # storage credentials (see below)
 ```
 
-R2 setup: create a bucket, enable its public development URL, and create an
-"Object Read & Write" API token scoped to the bucket. Put the resulting values in
-`.env`. Run `python verify_r2.py` to confirm connectivity, then upload a cover
-image once with `python tools/make_cover.py`.
+**The bucket.** On Cloudflare R2: create a bucket, enable its **public dev URL**,
+and make an **Object Read & Write** API token scoped to it. Drop the five values
+into `.env` (it's annotated). Any other S3-compatible store works too — see
+[Hosting](#hosting).
 
-## Usage
+```bash
+.venv/bin/python verify_r2.py          # put→get→public-fetch→delete; never prints secrets
+.venv/bin/python tools/make_cover.py   # generate + upload cover.png (once)
+```
 
-Write an `episode.json`:
+Then subscribe your podcast app to `<R2_PUBLIC_URL_BASE>/feed.xml` — once. Every
+future episode shows up on its own.
+
+## Making an episode
+
+**With Claude Code (the intended way).** Open this repo in Claude Code and say
+*"make an episode about X."* It asks a couple of calibration questions, researches
+if its knowledge is thin, writes the two-host script to `episode.json`, and runs the
+pipeline. [`CLAUDE.md`](CLAUDE.md) is the full playbook it follows — host personas,
+conversational pacing, pause/overlap direction, pronunciation overrides.
+
+**By hand.** Write an `episode.json` and run it yourself:
 
 ```json
 {
   "title": "Episode title",
   "description": "Shown in the podcast app",
   "turns": [
-    {"speaker": "host_a", "text": "Wait, so you're telling me the model was the easy part?"},
-    {"speaker": "host_b", "text": "That's exactly what I'm telling you. The hard part was getting anyone to trust it -- and that took months, not the two weeks everyone budgeted for."}
+    {"speaker": "host_a", "text": "Wait — you're telling me the model was the easy part?"},
+    {"speaker": "host_b", "text": "That's exactly what I'm telling you. The hard part was getting anyone to trust it.", "pause_after": -150}
   ]
 }
 ```
 
-Then produce and publish:
-
 ```bash
-python produce.py episode.json            # synthesize, upload, regenerate feed
-python produce.py episode.json --dry-run  # render to out/ locally, skip upload
+.venv/bin/python produce.py episode.json            # synthesize, upload, rebuild feed
+.venv/bin/python produce.py episode.json --dry-run  # render to out/ only, no upload
 ```
 
-Subscribe your podcast app to `<R2_PUBLIC_URL_BASE>/feed.xml` once. Every future
-episode appears automatically.
+`speaker` is `host_a` / `host_b` (configured in `config.toml`). Optional per-turn
+knobs: `pause_after` (ms to the next turn; **negative overlaps** them), `speed`,
+`gain_db`. Inline, inside `text`: `[pause]` / `[pause:700]` for a beat, `[breath]`
+for an inhale, and `[word](/ˈɪpə/)` to hand-set a pronunciation. The point is two
+distinct people reacting to each other — not one explanation split across two
+voices. `CLAUDE.md` has the why and the craft.
 
-Write it as a real conversation between two distinct people, not one explanation
-split across two voices — vary turn length freely (one-word reactions through
-multi-sentence points). Kokoro auto-chunks long turns at sentence boundaries, so
-there's no hard length limit per turn; only its ~510-phoneme-token *synthesis* cap
-matters, and that only bites a single turn longer than a few sentences.
-`CLAUDE.md` documents the full LLM-driven authoring procedure (personas, pacing,
-pronunciation overrides) if you drive this with Claude Code.
+## Configuration
+
+- **`config.toml`** — podcast metadata, and the two hosts: each is a `name`, a
+  Kokoro `voice` (`am_`/`af_` = US male/female, `bm_`/`bf_` = UK; full
+  [voice list](https://github.com/hexgrad/kokoro)), a stereo `pan`, and a `persona`
+  that steers how Claude writes that character. The `[tts]` block tunes pacing,
+  per-turn variation, the mic/room-tone realism layer, and mastering loudness — each
+  field is commented.
+- **`pronunciations.toml`** — a `term → IPA` dictionary auto-applied to every script,
+  so recurring jargon and names come out right without per-script annotation. Add
+  only terms the model actually says wrong; verify with `tools/check_pron.py`.
+
+## Hosting
+
+`storage.py` is plain S3 (`boto3`). To use a provider other than R2, point `.env` at
+it — `R2_ENDPOINT`, the keys, `R2_BUCKET`, the public `R2_PUBLIC_URL_BASE`, and
+`R2_REGION` (`auto` for R2; the bucket's real region for AWS S3). The bucket must
+serve its objects publicly so podcast apps can fetch them.
+
+**No object storage at all?** `produce.py --dry-run` writes the finished `feed.xml`
+and MP3s to `out/` — host that folder on any static host (GitHub Pages, Netlify,
+your own server). Set `R2_PUBLIC_URL_BASE` to where you'll serve it so the feed's
+links resolve; the other `R2_*` vars can stay as placeholders in dry-run.
 
 ## Tests
 
@@ -82,7 +115,8 @@ pronunciation overrides) if you drive this with Claude Code.
 .venv/bin/pytest -q
 ```
 
-One test (`test_storage_integration.py`) hits live R2 using your `.env`.
+`test_storage_integration.py` is the only one that hits live storage (your `.env`);
+deselect it with `--deselect tests/test_storage_integration.py` to run offline.
 
 ## License
 

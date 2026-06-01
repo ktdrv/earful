@@ -17,13 +17,13 @@ link = ""
 name = "Theo"
 voice = "am_puck"
 pan = -0.15   # stereo placement: -1 left .. +1 right
-persona = "The one with skin in the game. Pragmatic, a little anxious, allergic to hype; wants what actually works and will argue or admit when he's been talked out of something. Shorter, punchier lines; reacts fast."
+persona = "A peer who's done the homework, not a novice — the one who drives and presses. Quick and probing: he takes positions, defends them, hunts for the underlying mechanism and the spot where an argument doesn't hold. Edge and energy; shorter, sharper lines. When he asks a question it's to pressure-test, not because he's lost."
 
 [hosts.host_b]
 name = "Mara"
 voice = "af_heart"
 pan = 0.15
-persona = "The one who's actually done it. Grounds things in specifics and numbers, challenges romantic assumptions and lazy fears with tough-love, reassures with evidence. Occasionally wry. Longer, structured turns when making a real point."
+persona = "A peer who's done the homework, not a professor — the one who complicates and grounds. Reaches for the specific case, the number, the caveat, the 'it's messier than that,' and pushes back when Theo's framing gets too tidy. Wry, a little unhurried, comfortable sitting in nuance. She's thinking alongside, never lecturing."
 
 [tts]
 model = "mlx-community/Kokoro-82M-bf16"
@@ -35,6 +35,7 @@ pause_min_ms = -100      # negative = brief overlap (hosts talk over each other)
 pause_max_ms = 500
 sentence_pause_ms = 100  # gap between sentences within a turn (keeps periods breathing)
 beat_pause_ms = 400      # default length of a bare inline [pause] in a script
+comma_pause_level = 2    # comma pause: 1 = native Kokoro (short, ~38-125ms), 2-3 = inject phonemes to lift the floor
 speed_jitter = 0.04   # +/- fraction of speed per turn
 gain_jitter_db = 2.0  # +/- dB per turn (mic-distance / turning-to-cohost feel)
 drift_db = 1.5        # slow level drift WITHIN a turn

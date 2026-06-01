@@ -1,0 +1,28 @@
+# Pronunciation dictionary — the single source of truth for how recurring jargon and
+# proper nouns are spoken. Every term here is auto-wrapped into Kokoro's input at render
+# time (tts.apply_pronunciations), so you can write the word naturally in a script and it
+# comes out right, every episode, without hand-annotating.
+#
+# Format:  term = "phonemes"   (misaki notation — mostly IPA; ˈ = primary stress,
+#          ˌ = secondary, ː = long vowel. Capitals are misaki diphthongs: I=aɪ, A=eɪ,
+#          O=oʊ, W=aʊ, Y=ɔɪ.) Matching is whole-word and case-insensitive; a term already
+#          hand-wrapped in a script as [word](/ipa/) is left alone, so manual tuning wins.
+#
+# RULE: only add a term Kokoro actually says WRONG. Verify before and after:
+#     .venv/bin/python tools/check_pron.py            # phoneme diff per entry
+#     .venv/bin/python tools/check_pron.py --render    # hear them in out/pron_check.wav
+# An override you didn't ear-check is just a new way to mispronounce something.
+#
+# Already VERIFIED CORRECT by the model+espeak fallback — do NOT re-add these (checked
+# 2026-05-30 with check_pron.py): skua (skew-uh), TTS, API, RSS, SEO, CMS, Plotly,
+# matplotlib, DataFrame, markdown, subreddit. The fallback spells acronyms as letters on
+# its own, so most don't need help. (If a future stack ships without the espeak fallback,
+# OOV terms would break and these would need re-adding — re-run check_pron.py to confirm.)
+
+[pronunciations]
+# PyPI: fallback says "pie-pie" (that's PyPy); the convention is "pie-pee-eye". (2026-05-30)
+PyPI = "pˌaɪpˌiːˈaɪ"
+
+# Candidates not yet earning their place — uncomment only after check_pron.py --render
+# proves the override beats the default:
+# Kokoro = "koʊkˈoʊɹoʊ"   # default kəkˈɔɹO (kuh-KOR-oh) is close-ish; tune if it grates

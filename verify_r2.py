@@ -24,13 +24,13 @@ public_base = os.environ["R2_PUBLIC_URL_BASE"].rstrip("/")
 key = "earful-verify.txt"
 body = b"earful r2 verification ok"
 
-# R2 is S3-compatible; region must be "auto".
+# Any S3-compatible store; region is "auto" for R2, the real region for AWS S3.
 s3 = boto3.client(
     "s3",
     endpoint_url=os.environ["R2_ENDPOINT"],
     aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
     aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
-    config=Config(region_name="auto", signature_version="s3v4"),
+    config=Config(region_name=os.getenv("R2_REGION", "auto"), signature_version="s3v4"),
 )
 
 def step(label: str, fn) -> None:

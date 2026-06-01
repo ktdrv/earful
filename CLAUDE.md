@@ -1,7 +1,28 @@
 # Earful — how to make an episode
 
-When the user gives a topic ("make an episode about X"), do all of this without
-stopping for review (one-shot):
+When the user gives a topic ("make an episode about X"): ask a few calibration
+questions first (step 0), then do everything else one-shot — no more check-ins
+until it's published.
+
+## 0. Calibrate first (the only time you stop to ask)
+A bare topic doesn't tell you where to pitch the episode or what tension will make
+it sing, so ask me a few quick questions via AskUserQuestion BEFORE researching —
+then run straight through research → script → produce without stopping again. Ask:
+- **My familiarity with THIS topic** (new to me / solid basics / deep) — sets where
+  the conversation starts and how much it can assume.
+- **Angle / focus** — which facet of a broad topic to chase, or the question I want
+  the episode to actually answer.
+- **Tone / format** — e.g. debate-heavy vs. exploratory, rigorous vs. playful.
+Skip any I already pinned in my prompt; don't ask about length unless I raise it
+(default ~15 min). Those are the ONLY questions — everything after is one-shot.
+
+### Default audience: a smart, informed listener (me)
+Unless I say otherwise, assume the listener is an intelligent practitioner who just
+may not know THIS particular topic. So: no 101 throat-clearing, no defining obvious
+terms, no toy scenarios simplified "for exposition," no explaining-down. Go for real
+depth — actual mechanisms, real numbers, genuine tradeoffs, the non-obvious
+second-order stuff and the places things break. When in doubt, pitch higher, not
+lower. Never be cute at the expense of the listener's intelligence.
 
 ## 1. Freshness probe, then research
 - Do ONE quick web search to gauge whether my knowledge of the topic is current
@@ -12,11 +33,16 @@ stopping for review (one-shot):
 ## 2. Write the script to `episode.json`
 Two-host conversation between `host_a` and `host_b`. **Each host is a defined
 character** — read their `name` and `persona` from `config.toml` under `[hosts.*]`
-and write every line in that voice. Currently:
-- **host_a = Theo** — curious driver: energy, sharp naive questions, wants concrete
-  examples, gently pushes back on hype; shorter punchier lines.
-- **host_b = Mara** — seasoned expert: grounds things in specifics/numbers, nuanced,
-  occasionally wry; slightly longer structured explanations.
+and write every line in that voice. They are **peers, not teacher-and-student** —
+both have done the work and the research, and they meet as equals. They have stable
+temperaments but no fixed hierarchy:
+- **host_a = Theo** — drives and presses: quick, probing, takes positions and defends
+  them, hunts for the mechanism and the spot an argument doesn't hold. Edge and
+  energy; shorter, sharper lines. When he asks, it's to pressure-test, not because
+  he's lost.
+- **host_b = Mara** — complicates and grounds: reaches for the specific case, the
+  number, the caveat, the "it's messier than that." Wry, a little unhurried, sits in
+  nuance, pushes back when Theo gets too tidy. Thinking alongside, never lecturing.
 
 ### Two people, not one script (the most important rule)
 The failure mode to avoid at all costs: writing one explanation and slicing it
@@ -34,10 +60,16 @@ view (which may align OR clash):
   Let one talk the other out of something.
 - **Asymmetry is the point.** One host might monologue for five sentences while the
   other just says "Go on." or "Brutal." Their turn lengths and rhythms should differ.
-- **They are different people.** Different vocabulary, different worries, different
-  things they get excited about. Theo is the one with skin in the game asking the
-  anxious, practical questions; Mara is the one who's seen it and grounds or
-  complicates his assumptions. Don't let them blur into one neutral narrator.
+- **They are different people.** Different vocabulary, different instincts, different
+  things they get excited about. They're equals — when one knows something the other
+  doesn't, it's domain, not rank. Don't let them blur into one neutral narrator, and
+  never let either slip into explaining-down.
+- **Pick the axis of tension that best fits THIS topic.** Their core temperaments are
+  fixed, but what they actually clash or differ over should change episode to episode
+  to make the dialogue best — concept vs. real-world evidence, optimist vs. skeptic
+  on the thing itself, two different domains colliding, or broad agreement reached by
+  very different routes. Choose whatever surfaces the most genuine, intelligent
+  disagreement for the subject at hand.
 - Use callbacks, a cold open mid-thought, light humor, and first names occasionally
   (sparingly). If you could swap who says each line without anyone noticing, you've
   written it wrong.
@@ -95,10 +127,16 @@ it sounds:
   beats, question marks = rising intonation, em-dashes = a quick break. Use them
   deliberately to control pacing.
 - Keep most sentences under ~20-25 words; the model handles shorter spoken units best.
-- **Fixing pronunciation:** for jargon, acronyms, or proper nouns the model mangles,
-  use misaki's inline override syntax in the text: `[word](/ˈIPA/)`, e.g.
-  `[Kubernetes](/kˈubɚnˌɛtɪs/)`. Spell acronyms with periods to force letter reading
-  (e.g. `A.I.`). Spell out numbers when natural ("twenty twenty five", not "2025").
+- **Fixing pronunciation (do this every script):** recurring jargon and proper nouns are
+  handled centrally by `pronunciations.toml` — a `term -> misaki-IPA` dictionary that's
+  auto-applied to every script at render time (`tts.apply_pronunciations`). So write those
+  words normally ("API", "skua") and the pipeline wraps them. **Before producing, scan the
+  finished script for any name/acronym/jargon Kokoro would likely mangle that ISN'T already
+  in `pronunciations.toml`, and add it** — verify the entry with `tools/check_pron.py`
+  (`--render` to hear it) and only keep overrides where the default is genuinely wrong. For
+  a true one-off you don't want in the dict, hand-wrap it inline with the same syntax:
+  `[word](/ˈIPA/)`, e.g. `[Kubernetes](/kˈubɚnˌɛtɪs/)` (a manual inline override always wins
+  over the dict). Spell out numbers when natural ("twenty twenty five", not "2025").
 - No stage directions or sound-effect cues inside `text` — only spoken words and the
   override syntax above get read.
 

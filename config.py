@@ -20,11 +20,17 @@ class Podcast:
 
 @dataclass(frozen=True)
 class R2Creds:
+    """Credentials for any S3-compatible store. Cloudflare R2 is the default (its
+    free tier, public dev URL, and zero egress fees fit a public podcast feed), but
+    AWS S3, Backblaze B2, DigitalOcean Spaces, Wasabi, and MinIO all speak the same
+    API — point `endpoint` at them and set `region`. `region` is "auto" for R2; use
+    the bucket's real region for AWS S3."""
     endpoint: str
     access_key_id: str
     secret_access_key: str
     bucket: str
     public_base: str
+    region: str
 
 
 @dataclass(frozen=True)
@@ -46,6 +52,7 @@ class Config:
     pause_max_ms: int
     sentence_pause_ms: int  # gap inserted between sentences within a turn
     beat_pause_ms: int      # default length of a bare inline [pause] marker
+    comma_pause_level: int  # comma tokens injected into the phoneme stream to lengthen comma pauses (1 = native Kokoro)
     sample_rate: int
     speed: float
     speed_jitter: float
@@ -58,6 +65,7 @@ class Config:
     mic_chain: bool       # apply the physical-mic tone chain on export
     deess_intensity: float  # de-esser strength (0 disables)
     loudness_lufs: float    # target integrated loudness; > -70 enables loudnorm
+    pronunciations: dict[str, str]  # term -> misaki IPA, auto-applied to every script
     r2: R2Creds
 
 
@@ -76,6 +84,12 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         link=p.get("link", ""),
     )
     tts = data.get("tts", {})
+
+    # Pronunciation overrides live in their own checked-in file (config.toml is gitignored
+    # personal config; the pronunciation dict is a shared production asset). term -> IPA in
+    # misaki's notation; tts.apply_pronunciations wraps these into the model's input.
+    pron_path = Path("pronunciations.toml")
+    pronunciations = tomllib.loads(pron_path.read_text()).get("pronunciations", {}) if pron_path.exists() else {}
 
     # Hosts: prefer the [hosts.*] tables (name + voice + persona). Fall back to a
     # bare [voices] table for backward compatibility (name defaults to the id).
@@ -97,6 +111,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         secret_access_key=env("R2_SECRET_ACCESS_KEY"),
         bucket=env("R2_BUCKET"),
         public_base=env("R2_PUBLIC_URL_BASE").rstrip("/"),
+        region=os.getenv("R2_REGION", "auto"),  # "auto" for R2; real region for AWS S3
     )
     return Config(
         podcast=podcast,
@@ -108,6 +123,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         pause_max_ms=int(tts.get("pause_max_ms", 500)),
         sentence_pause_ms=int(tts.get("sentence_pause_ms", 100)),
         beat_pause_ms=int(tts.get("beat_pause_ms", 400)),
+        comma_pause_level=int(tts.get("comma_pause_level", 2)),
         sample_rate=int(tts.get("sample_rate", 24000)),
         speed=float(tts.get("speed", 1.05)),  # slightly faster than Kokoro's 1.0 default
         speed_jitter=float(tts.get("speed_jitter", 0.04)),  # +/- fraction per turn
@@ -120,5 +136,6 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         mic_chain=bool(tts.get("mic_chain", True)),
         deess_intensity=float(tts.get("deess_intensity", 0.4)),
         loudness_lufs=float(tts.get("loudness_lufs", -16.0)),
+        pronunciations=pronunciations,
         r2=r2,
     )

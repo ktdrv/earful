@@ -14,7 +14,7 @@ class Storage:
             endpoint_url=r2.endpoint,
             aws_access_key_id=r2.access_key_id,
             aws_secret_access_key=r2.secret_access_key,
-            config=BotoConfig(region_name="auto", signature_version="s3v4"),
+            config=BotoConfig(region_name=r2.region, signature_version="s3v4"),
         )
         self._bucket = r2.bucket
         self._base = r2.public_base

@@ -36,16 +36,25 @@ def produce(episode_path: str, dry_run: bool) -> str:
     if dry_run:
         local = Path("out/episodes.json")
         manifest = feed.manifest_from_json(local.read_text()) if local.exists() else []
+        manifest = [r for r in manifest if feed.slugify(r.title) != feed.slugify(record.title)]  # idempotent re-publish (replace same-title)
         manifest.append(record)
         local.write_text(feed.manifest_to_json(manifest))
         Path("out/feed.xml").write_text(feed.render_feed(cfg.podcast, manifest, cfg.r2.public_base))
         print(f"[dry-run] wrote {mp3_path}, out/feed.xml, out/episodes.json")
         return "out/feed.xml"
 
+    # Archive the script under a stable per-episode name (slug + content hash) so each
+    # published episode's source is kept instead of episode.json being overwritten.
+    # Same content -> same filename (idempotent); edits get a new file. scripts/ is gitignored.
+    archive_dir = Path("scripts")
+    archive_dir.mkdir(exist_ok=True)
+    (archive_dir / f"{slug}-{guid[:8]}.json").write_text(Path(episode_path).read_text())
+
     storage = Storage(cfg.r2)
     storage.upload_file(mp3_path, audio_key, "audio/mpeg")
     raw = storage.download_bytes(MANIFEST_KEY)
     manifest = feed.manifest_from_json(raw.decode()) if raw else []
+    manifest = [r for r in manifest if feed.slugify(r.title) != feed.slugify(record.title)]  # idempotent re-publish (replace same-title)
     manifest.append(record)
     storage.upload_bytes(feed.manifest_to_json(manifest).encode(), MANIFEST_KEY, "application/json")
     feed_url = storage.upload_bytes(
