@@ -29,7 +29,7 @@ persona = "A peer who's done the homework, not a professor — the one who compl
 model = "mlx-community/Kokoro-82M-bf16"
 lang_code = "a"
 sample_rate = 24000
-speed = 1.05          # 1.0 = Kokoro default; >1 speaks faster
+speed = 1.0           # 1.0 = Kokoro default; >1 speaks faster (compounds with listener-side playback speed)
 # Organic variation, randomized per turn (seeded from episode content -> reproducible).
 pause_min_ms = -100      # negative = brief overlap (hosts talk over each other)
 pause_max_ms = 500

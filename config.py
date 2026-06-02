@@ -125,7 +125,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         beat_pause_ms=int(tts.get("beat_pause_ms", 400)),
         comma_pause_level=int(tts.get("comma_pause_level", 2)),
         sample_rate=int(tts.get("sample_rate", 24000)),
-        speed=float(tts.get("speed", 1.05)),  # slightly faster than Kokoro's 1.0 default
+        speed=float(tts.get("speed", 1.0)),  # 1.0 = Kokoro default; leave it so listener-side playback speed isn't compounded
         speed_jitter=float(tts.get("speed_jitter", 0.04)),  # +/- fraction per turn
         gain_jitter_db=float(tts.get("gain_jitter_db", 2.0)),  # +/- dB per turn (mic-distance feel)
         drift_db=float(tts.get("drift_db", 1.5)),
