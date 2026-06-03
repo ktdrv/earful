@@ -66,6 +66,7 @@ class Config:
     deess_intensity: float  # de-esser strength (0 disables)
     loudness_lufs: float    # target integrated loudness; > -70 enables loudnorm
     pronunciations: dict[str, str]  # term -> misaki IPA, auto-applied to every script
+    scripts_dir: str  # where .md episode scripts live (default "scripts"); may point at a vault folder
     r2: R2Creds
 
 
@@ -137,5 +138,6 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         deess_intensity=float(tts.get("deess_intensity", 0.4)),
         loudness_lufs=float(tts.get("loudness_lufs", -16.0)),
         pronunciations=pronunciations,
+        scripts_dir=data.get("scripts_dir", "scripts"),
         r2=r2,
     )

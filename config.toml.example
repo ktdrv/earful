@@ -1,6 +1,10 @@
 # Copy to config.toml and edit. config.toml is gitignored (it holds your
 # podcast's identity); this example is the template.
 
+# Where episode scripts (.md) live. Default is a local scripts/ folder; point it at any
+# directory you like (e.g. an Obsidian vault folder). Personal — config.toml is gitignored.
+scripts_dir = "scripts"
+
 [podcast]
 title = "Earful"
 description = "AI-produced episodes on whatever I want to learn next."

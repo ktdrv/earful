@@ -30,7 +30,7 @@ def test_load_config_reads_toml_and_env(tmp_path, monkeypatch):
     assert c.podcast.title == "Earful"
     assert c.podcast.explicit is False
     assert c.voices["host_a"] == "am_michael"
-    assert c.speed == 1.05  # slightly-faster default when unset
+    assert c.speed == 1.0  # Kokoro default when unset (listener applies their own playback speed)
     assert c.sentence_pause_ms == 100 and c.beat_pause_ms == 400
     assert c.pause_min_ms == -100 and c.pause_max_ms == 500  # organic-variation defaults
     assert c.gain_jitter_db == 2.0
@@ -70,6 +70,16 @@ def test_load_config_reads_host_personas(tmp_path, monkeypatch):
     assert c.hosts["host_a"].name == "Theo"
     assert c.hosts["host_a"].persona == "curious driver"
     assert c.voices == {"host_a": "am_puck", "host_b": "af_heart"}  # derived for tts
+
+
+def test_load_config_scripts_dir_default_and_override(tmp_path, monkeypatch):
+    base = '[podcast]\ntitle="t"\ndescription="d"\nauthor="a"\nemail="e"\n[voices]\nhost_a="am_michael"\nhost_b="af_heart"\n'
+    for k in ("R2_ENDPOINT", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_URL_BASE"):
+        monkeypatch.setenv(k, "x")
+    t1 = tmp_path / "a.toml"; t1.write_text(base)
+    assert cfg.load_config(toml_path=str(t1), env_path="/nonexistent").scripts_dir == "scripts"
+    t2 = tmp_path / "b.toml"; t2.write_text('scripts_dir = "/vault/Earful"\n' + base)
+    assert cfg.load_config(toml_path=str(t2), env_path="/nonexistent").scripts_dir == "/vault/Earful"
 
 
 def test_load_config_missing_env_raises(tmp_path, monkeypatch):
