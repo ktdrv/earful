@@ -17,5 +17,8 @@ config.toml
 # local-only notes / scratch
 *.notes.md
 
+# local planning docs / specs (kept out of the public repo)
+docs/
+
 # archived episode scripts (one per published episode)
 scripts/
