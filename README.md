@@ -8,7 +8,7 @@ script with a local TTS model, masters it to MP3, uploads it to object storage, 
 regenerates a standard RSS feed your podcast app is subscribed to.
 
 ```
-episode.json ─▶ produce.py
+script.md ─▶ produce.py
                  ├─ synthesize each turn with Kokoro (two voices, mlx-audio)
                  ├─ stitch turns + pauses, master → MP3 (ffmpeg, ID3 tags)
                  ├─ upload MP3 to object storage (Cloudflare R2 by default)
@@ -56,34 +56,37 @@ future episode shows up on its own.
 
 **With Claude Code (the intended way).** Open this repo in Claude Code and say
 *"make an episode about X."* It asks a couple of calibration questions, researches
-if its knowledge is thin, writes the two-host script to `episode.json`, and runs the
+if its knowledge is thin, writes the two-host script as a Markdown file, and runs the
 pipeline. [`CLAUDE.md`](CLAUDE.md) is the full playbook it follows — host personas,
 conversational pacing, pause/overlap direction, pronunciation overrides.
 
-**By hand.** Write an `episode.json` and run it yourself:
+**By hand.** Episodes are plain-Markdown **audio-scripts** — frontmatter plus a `THEO:`/`MARA:`
+dialogue. They live in `scripts_dir` (a config value; point it at any folder you like,
+e.g. an Obsidian vault — it's just Markdown, no Obsidian required). See `example.md`:
 
-```json
-{
-  "title": "Episode title",
-  "description": "Shown in the podcast app",
-  "turns": [
-    {"speaker": "host_a", "text": "Wait — you're telling me the model was the easy part?"},
-    {"speaker": "host_b", "text": "That's exactly what I'm telling you. The hard part was getting anyone to trust it.", "pause_after": -150}
-  ]
-}
+```markdown
+---
+title: Episode title
+description: Shown in the podcast app
+---
+
+THEO: Wait — you're telling me the model was the easy part? (beat) That's the whole story.
+MARA: That's exactly what I'm telling you. The hard part was getting anyone to trust it —
+THEO: —and that took months, not the two weeks everyone budgeted.
 ```
 
 ```bash
-.venv/bin/python produce.py episode.json            # synthesize, upload, rebuild feed
-.venv/bin/python produce.py episode.json --dry-run  # render to out/ only, no upload
+.venv/bin/python produce.py my-episode            # resolves scripts_dir/my-episode.md
+.venv/bin/python produce.py my-episode --dry-run  # render to out/ only, no upload
 ```
 
-`speaker` is `host_a` / `host_b` (configured in `config.toml`). Optional per-turn
-knobs: `pause_after` (ms to the next turn; **negative overlaps** them), `speed`,
-`gain_db`. Inline, inside `text`: `[pause]` / `[pause:700]` for a beat, `[breath]`
-for an inhale, and `[word](/ˈɪpə/)` to hand-set a pronunciation. The point is two
-distinct people reacting to each other — not one explanation split across two
-voices. `CLAUDE.md` has the why and the craft.
+Each line is a host **cue** (`Theo`/`Mara`, from `config.toml`) and a colon; a turn runs to
+the next cue. Direction goes in parentheticals, stripped from the audio: `(beat)` /
+`(pause)` / `(long pause)` / `(pause: 500)` for a pause, `…` for a trail-off, a trailing
+`—` to have the next host talk over you, `(breath)`, and `(faster)`/`(slower)` to lead a
+line. `[word](/ˈɪpə/)` hand-sets a pronunciation. Any other parenthetical is ignored (a
+note to yourself). The point is two distinct people reacting to each other — not one
+explanation split across two voices. `CLAUDE.md` has the why and the craft.
 
 ## Configuration
 

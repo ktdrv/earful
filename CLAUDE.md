@@ -30,7 +30,7 @@ lower. Never be cute at the expense of the listener's intelligence.
 - If it's solid, write from my own knowledge. If it's stale, thin, or fast-moving,
   do fuller research (search + fetch a few good sources) before writing.
 
-## 2. Write the script to `episode.json`
+## 2. Write the script to `<scripts_dir>/<slug>.md`
 Two-host conversation between `host_a` and `host_b`. **Each host is a defined
 character** — read their `name` and `persona` from `config.toml` under `[hosts.*]`
 and write every line in that voice. They are **peers, not teacher-and-student** —
@@ -70,37 +70,42 @@ view (which may align OR clash):
   on the thing itself, two different domains colliding, or broad agreement reached by
   very different routes. Choose whatever surfaces the most genuine, intelligent
   disagreement for the subject at hand.
-- Use callbacks, a cold open mid-thought, light humor, and first names occasionally
+- Use callbacks, a cold open mid-thought, dry understated humor, and first names occasionally
   (sparingly). If you could swap who says each line without anyone noticing, you've
   written it wrong.
 
-Schema:
-```json
-{
-  "title": "Concise episode title",
-  "description": "1-3 sentence summary shown in the podcast app",
-  "scratchpad": "My outline/plan before writing turns (ignored by the pipeline)",
-  "turns": [
-    {"speaker": "host_a", "text": "...", "pause_after": 250},
-    {"speaker": "host_b", "text": "..."}
-  ]
-}
-```
+Format — a plain-Markdown **audio-script** (this `.md` is the source the pipeline reads):
+```markdown
+---
+title: Concise episode title
+description: 1-3 sentence summary shown in the podcast app
+---
 
-### Scripting pacing (non-speech)
-You direct the rhythm, not just the words. Use these sparingly and deliberately —
-they're seasoning, not every line:
-- **`[pause]` / `[pause:Nms]`** inside `text` — a mid-turn beat. Bare `[pause]` is
-  ~400ms; `[pause:700]` sets the length. Great before a punchline or reveal:
-  `"Anyone can prompt a model now. [pause:500] Knowing which answer to trust is the rare part."`
-  The marker is removed from the spoken audio.
-- **`"pause_after": <ms>`** on a turn — the exact gap to the next turn, overriding the
-  random one. **Negative = overlap** (the next host starts before this one finishes,
-  i.e. talking over / jumping in): `"pause_after": -150`. Use a small positive value
-  (200-400) for comic/dramatic timing, negative for interruptions or eager agreement.
-- Sentences within a turn already get a short automatic pause; you don't need to
-  script those. Only add `[pause]`/`pause_after` where you want a beat that's longer,
-  shorter, or an overlap than the default rhythm.
+(Optional outline/notes — anything before the first cue is ignored by the pipeline.)
+
+THEO: First line of dialogue. (beat) Still Theo.
+MARA: A reply, then I get cut off —
+THEO: —and I jump in.
+```
+Each line starts with a host **cue** — the host's name (`Theo` / `Mara`, from the
+`[hosts.*].name` in `config.toml`) and a colon. A turn runs until the next cue. Write the
+file to `<scripts_dir>/<slug>.md` (`scripts_dir` is a config value; `<slug>` is the
+title lowercased-and-hyphenated). `example.md` in the repo is a working reference.
+
+### Scripting pacing (script direction)
+You direct the rhythm with script conventions, which are stripped from the audio. Use them
+sparingly — seasoning, not every line:
+- **Pauses** — a parenthetical beat: `(beat)` (~300ms), `(pause)` (~600ms), `(long pause)`
+  (~1.2s), or `(pause: 500)` for an exact length. Great before a reveal:
+  `THEO: Anyone can prompt a model now. (pause: 500) Knowing which answer to trust is the rare part.`
+- **Trail-off** — an ellipsis `…` (or `...`) is a soft beat: `it's about... well, trust.`
+- **Overlap / interruption** — end a line with `—` and the next host talks over it (jumps
+  in / eager agreement): `MARA: but I thought—` then `THEO: —it's fine.`
+- **Breath** — `(breath)` for a scripted inhale. **Pace** — *lead* a line with `(faster)`
+  or `(slower)` to nudge that whole turn's speed (only works at the very start of the line).
+- Any *other* parenthetical (e.g. `(dryly)`) is ignored — Kokoro is flat and can't act, so it
+  survives only as a note to yourself. Sentences already get a short automatic pause; only
+  add direction where you want a longer/shorter beat or an overlap than the default rhythm.
 Rules:
 - **Let each turn be as long as the thought needs — and vary it hard.** A turn
   might be one word ("Brutal.") or five sentences when a host is making a real
@@ -108,19 +113,32 @@ Rules:
   like one script read by two voices. (Kokoro auto-chunks long turns at sentence
   boundaries, so length is not a technical concern — keep turns under ~3 sentences
   only if you want zero chance of a faint mid-turn seam.)
-- Plan in `scratchpad` first, then write turns.
+- Plan an outline first (jot it in a notes section above the first cue — the pipeline
+  ignores everything before the first `Name:` line), then write the dialogue.
 - Target ~12-18 minutes (~2000-2800 words total across both hosts).
 - Open with a brief hook, close with a short recap.
 
 Write for the EAR, not the page — this is the single biggest lever on how natural
 it sounds:
+- **Write for flat voices — keep the tone matter-of-fact.** Kokoro's delivery is even
+  and unexpressive; it can't sell big emotional swings, sarcasm, mugging, or giddy
+  excitement through performance. So let the *words* carry the meaning, not the delivery.
+  Favor dry, declarative lines over animated ones; put the wit in the phrasing, not in how
+  it'd be "said." Never write a line that only lands if read with energy or an eye-roll —
+  it'll come out flat and fall over. Matter-of-fact and a little understated is the register
+  that actually fits these voices.
+- **Avoid non-lexical interjections** — "oh", "ah", "huh", "hm", "mm", "ooh", "whoa",
+  "ugh", "ha". Kokoro mangles them (odd noises, or it skips them). Use a real word instead
+  ("wait", "okay", "right", "no way", "exactly") or just cut it.
 - **Use contractions everywhere.** "it's", "you're", "don't", "let's", "we'll",
   "that's", "here's". Never write "let us", "you are", "do not", "it is" — formal
   uninflected phrasing is what makes TTS sound robotic.
-- **Sprinkle light discourse markers and fillers**, sparingly: "right", "yeah",
-  "I mean", "honestly", "look", "so", "okay so". A little goes a long way.
+- **Sprinkle light discourse markers**, sparingly: "right", "yeah", "I mean",
+  "honestly", "look", "so", "okay so". A little goes a long way. (Real words only —
+  not the interjection noises ruled out above.)
 - **Use short reactive back-channels** between longer turns: "Right." "Exactly."
-  "Totally." "Ha, yeah." "Wait, really?" They make it feel like a real exchange.
+  "Totally." "No way." "Wait, really?" They make it feel like a real exchange. Keep them
+  lexical — "Right." not "Mm.", "Ha, yeah" becomes "Yeah" or "No way".
 - **Vary sentence length and rhythm.** Mix a punchy 4-word line with a longer one.
   Don't let every turn be the same shape.
 - **Punctuation IS prosody.** Commas = short pauses, periods/ellipses = longer
@@ -144,7 +162,7 @@ Lean into imperfection — real conversations aren't tidy:
 - **Self-corrections / restarts:** occasionally have a host reframe mid-thought —
   "it's about—well, it's really about trust."
 - **Asymmetric turns:** don't keep turns evenly balanced. Let one host run three
-  sentences while the other just reacts with "Mm, right." or "Wait, really?"
+  sentences while the other just reacts with "Yeah, exactly." or "Wait, really?"
 - **Mild disagreement:** they shouldn't always agree. A little pushback —
   "I'd actually push back on that" — then resolution. Tension reads as real.
 - **Callbacks:** reference something said earlier ("like you said about churn…") for
@@ -158,10 +176,11 @@ pauses or emphasis with extra punctuation hacks beyond normal writing.
 
 ## 3. Produce and publish
 ```bash
-.venv/bin/python produce.py episode.json
+.venv/bin/python produce.py <slug>          # resolves <scripts_dir>/<slug>.md
 ```
 This synthesizes audio, uploads to R2, regenerates the feed, and prints the feed URL.
-Use `--dry-run` to render locally (out/) without uploading when testing.
+Pass a bare episode name (resolved in `scripts_dir`) or a path to a `.md`. Use `--dry-run`
+to render locally (out/) without uploading when testing.
 
 ## Notes
 - Config (podcast metadata, voices) lives in `config.toml`; R2 creds in `.env`.
