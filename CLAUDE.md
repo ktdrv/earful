@@ -115,7 +115,20 @@ Rules:
   only if you want zero chance of a faint mid-turn seam.)
 - Plan an outline first (jot it in a notes section above the first cue — the pipeline
   ignores everything before the first `Name:` line), then write the dialogue.
-- Target ~12-18 minutes (~2000-2800 words total across both hosts).
+- Length: the spoken rate is **NOT constant** — it drops with conversational density,
+  because every turn boundary and every sentence adds pause overhead (inter-turn gaps
+  plus the ~100ms sentence pause). So the choppy, reactive, many-short-turns style this
+  playbook demands runs *slower* than a few long monologues would. Measured across
+  produced episodes (`spoken_words / (ffprobe_duration / 60)`, stripping `Name:` cues,
+  `(parentheticals)`, and inline `[w](/ipa/)` overrides down to the word):
+  - **Light** episodes ~196–198 wpm — e.g. Hello Kitty (70 turns / 230 sentences → 197.6).
+  - **Dense rigorous** episodes — the current default — ~178–183 wpm: polyphenols
+    (101 turns / 309 sentences → 178.4), psychometrics (72 turns / 218 sentences → 182.9).
+  So for the dense default style budget **~183 wpm**: words ≈ minutes × 183 (12 min ≈
+  2200, 15 min ≈ 2750, 18 min ≈ 3300, 20 min ≈ 3650). The old 195 figure overshoots —
+  both recent ~2850-word "15-min" scripts ran 15.6–16.2 min. Default target is ~15 min
+  unless I ask for more. Re-measure and refine as the sample grows; if an episode is
+  unusually monologue-heavy (few long turns), nudge back toward ~195.
 - Open with a brief hook, close with a short recap.
 
 Write for the EAR, not the page — this is the single biggest lever on how natural
