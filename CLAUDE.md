@@ -31,18 +31,7 @@ lower. Never be cute at the expense of the listener's intelligence.
   do fuller research (search + fetch a few good sources) before writing.
 
 ## 2. Write the script to `<scripts_dir>/<slug>.md`
-Two-host conversation between `host_a` and `host_b`. **Each host is a defined
-character** — read their `name` and `persona` from `config.toml` under `[hosts.*]`
-and write every line in that voice. They are **peers, not teacher-and-student** —
-both have done the work and the research, and they meet as equals. They have stable
-temperaments but no fixed hierarchy:
-- **host_a = Theo** — drives and presses: quick, probing, takes positions and defends
-  them, hunts for the mechanism and the spot an argument doesn't hold. Edge and
-  energy; shorter, sharper lines. When he asks, it's to pressure-test, not because
-  he's lost.
-- **host_b = Mara** — complicates and grounds: reaches for the specific case, the
-  number, the caveat, the "it's messier than that." Wry, a little unhurried, sits in
-  nuance, pushes back when Theo gets too tidy. Thinking alongside, never lecturing.
+Two-host conversation between `host_a` and `host_b`. **Each host is a defined character**: read their `name` and `persona` from `config.toml` under `[hosts.*]` and write every line in that voice. The personas are the source of truth for who the hosts are; the rest of this playbook uses the example hosts' names, Theo and Mara, only for illustration. They are **peers, not teacher-and-student**: both have done the work and the research, and they meet as equals, with stable temperaments but no fixed hierarchy. In the example config one drives and presses (quick, probing, takes positions and hunts for where an argument breaks) and the other complicates and grounds (the specific case, the number, the caveat, "it's messier than that").
 
 ### Two people, not one script (the most important rule)
 The failure mode to avoid at all costs: writing one explanation and slicing it
@@ -115,20 +104,10 @@ Rules:
   only if you want zero chance of a faint mid-turn seam.)
 - Plan an outline first (jot it in a notes section above the first cue — the pipeline
   ignores everything before the first `Name:` line), then write the dialogue.
-- Length: the spoken rate is **NOT constant** — it drops with conversational density,
-  because every turn boundary and every sentence adds pause overhead (inter-turn gaps
-  plus the ~100ms sentence pause). So the choppy, reactive, many-short-turns style this
-  playbook demands runs *slower* than a few long monologues would. Measured across
-  produced episodes (`spoken_words / (ffprobe_duration / 60)`, stripping `Name:` cues,
-  `(parentheticals)`, and inline `[w](/ipa/)` overrides down to the word):
-  - **Light** episodes ~196–198 wpm — e.g. Hello Kitty (70 turns / 230 sentences → 197.6).
-  - **Dense rigorous** episodes — the current default — ~178–183 wpm: polyphenols
-    (101 turns / 309 sentences → 178.4), psychometrics (72 turns / 218 sentences → 182.9).
-  So for the dense default style budget **~183 wpm**: words ≈ minutes × 183 (12 min ≈
-  2200, 15 min ≈ 2750, 18 min ≈ 3300, 20 min ≈ 3650). The old 195 figure overshoots —
-  both recent ~2850-word "15-min" scripts ran 15.6–16.2 min. Default target is ~15 min
-  unless I ask for more. Re-measure and refine as the sample grows; if an episode is
-  unusually monologue-heavy (few long turns), nudge back toward ~195.
+- Length: the spoken rate is **NOT constant**. It drops with conversational density, because every turn boundary and every sentence adds pause overhead, so the choppy, reactive, many-short-turns style this playbook demands runs *slower* than a few long monologues would. It also depends on the engine. Measured as `spoken_words / (ffprobe_duration / 60)`, with `Name:` cues, `(parentheticals)` and inline `[w](/ipa/)` overrides stripped down to the word:
+  - **Kokoro:** light episodes ~196–198 wpm, dense rigorous ones (the default) ~178–185 wpm. Budget **~183 wpm**: words ≈ minutes × 183 (12 min ≈ 2200, 15 min ≈ 2750, 20 min ≈ 3650).
+  - **Gemini** reads about 10% slower: the same dense script ran 162 wpm against Kokoro's 179. Budget **~165 wpm** (12 min ≈ 2000, 15 min ≈ 2475, 20 min ≈ 3300).
+  Budget for the engine in `[tts] engine`. Default target is ~15 min unless I ask for more. If an episode is unusually monologue-heavy (few long turns), nudge the budget up a little.
 - Open with a brief hook, close with a short recap.
 
 Write for the EAR, not the page — this is the single biggest lever on how natural
@@ -189,7 +168,7 @@ pauses or emphasis with extra punctuation hacks beyond normal writing.
 
 ## 3. Produce and publish
 ```bash
-.venv/bin/python produce.py <slug>          # resolves <scripts_dir>/<slug>.md
+uv run produce.py <slug>          # resolves <scripts_dir>/<slug>.md
 ```
 This synthesizes audio, uploads to R2, regenerates the feed, and prints the feed URL.
 Pass a bare episode name (resolved in `scripts_dir`) or a path to a `.md`. Use `--dry-run`
@@ -199,12 +178,7 @@ to render locally (out/) without uploading when testing.
 - Config (podcast metadata, voices) lives in `config.toml`; R2 creds in `.env`.
 - TTS is isolated behind `tts.synthesize(episode, config)` — swapping engines is a
   single-file change.
-- Two engines: Kokoro (`tts.py`, local) and Gemini (`gemini_tts.py`, paid API, needs
-  `GEMINI_API_KEY`), chosen by `[tts] engine` in `config.toml` or `produce.py --engine`.
-  Write scripts the same way for both. Gemini maps the pacing directions to its own tags,
-  also acts vocal cues like `(laughs)` or `(sigh)`, and treats a parenthetical that *opens*
-  a line, like `(dryly)`, as delivery direction for that turn. It ignores
-  `pronunciations.toml` and reads `[word](/ipa/)` overrides as the plain word.
+- Two engines: Kokoro (`tts.py`, local, Apple Silicon only) and Gemini (`gemini_tts.py`, paid API, needs `GEMINI_API_KEY`), chosen by `[tts] engine` in `config.toml` or `produce.py --engine`. Write scripts the same way for both. Gemini maps the pacing directions to its own tags, also performs vocal cues like `(laughs)` or `(sigh)`, and treats a parenthetical that *opens* a line, like `(dryly)`, as delivery direction for that turn. It ignores `pronunciations.toml` and reads `[word](/ipa/)` overrides as the plain word, so the pronunciation step only matters for Kokoro.
 - `verify_r2.py` re-checks R2 connectivity if publishing fails.
 - The feed lives at `<R2_PUBLIC_URL_BASE>/feed.xml`; the user subscribes their
   podcast app to it once.

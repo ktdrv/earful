@@ -90,9 +90,9 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
     )
     tts = data.get("tts", {})
 
-    # Pronunciation overrides live in their own checked-in file (config.toml is gitignored
-    # personal config; the pronunciation dict is a shared production asset). term -> IPA in
-    # misaki's notation; tts.apply_pronunciations wraps these into the model's input.
+    # Kokoro pronunciation overrides live in their own personal, gitignored file (copied from
+    # pronunciations.toml.example); optional. term -> IPA in misaki's notation;
+    # tts.apply_pronunciations wraps these into the model's input.
     pron_path = Path("pronunciations.toml")
     pronunciations = tomllib.loads(pron_path.read_text()).get("pronunciations", {}) if pron_path.exists() else {}
 

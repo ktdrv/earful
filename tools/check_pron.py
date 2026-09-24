@@ -2,8 +2,8 @@
 DEFAULT versus with our override applied — so you can confirm by eye (phonemes) and,
 with --render, by ear (a tiny wav) that each override is actually an improvement.
 
-    .venv/bin/python tools/check_pron.py            # phoneme diff for every entry
-    .venv/bin/python tools/check_pron.py --render    # also render out/pron_check.wav
+    uv run tools/check_pron.py            # phoneme diff for every entry
+    uv run tools/check_pron.py --render    # also render out/pron_check.wav
 
 An override only earns its place if DEFAULT is wrong and OVERRIDE is right. If DEFAULT
 already sounds correct, delete the entry — a needless override is just another way to

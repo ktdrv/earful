@@ -1,9 +1,15 @@
+import pytest
+
 import config as cfg
 from storage import Storage
 
 
 def test_r2_round_trip():
-    c = cfg.load_config()
+    # Hits live storage, so it needs a real config.toml and credentials in .env; skip without them.
+    try:
+        c = cfg.load_config()
+    except (FileNotFoundError, RuntimeError) as e:
+        pytest.skip(f"no storage configured: {e}")
     s = Storage(c.r2)
     key = "earful-test/storage-it.json"
     url = s.upload_bytes(b'{"ok": true}', key, "application/json")

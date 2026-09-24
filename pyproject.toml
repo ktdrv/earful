@@ -1,0 +1,33 @@
+[project]
+name = "earful"
+version = "0.1.0"
+description = "Turn a two-host Markdown script into a podcast episode and publish it to your own feed."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3",
+    "defusedxml",
+    "numpy",
+    "pillow",
+    "python-dotenv",
+    "soundfile",
+]
+
+[dependency-groups]
+dev = ["pytest"]
+# The local Kokoro engine, which runs only on Apple Silicon; the markers skip it everywhere else.
+# Installed by default. The Gemini engine needs none of it: `uv sync --no-group kokoro` to leave it out.
+kokoro = [
+    # Pinned: tts.py reaches into mlx-audio's Kokoro pipeline internals, which move between releases.
+    "mlx-audio==0.4.3; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    # Kokoro's G2P. mlx-audio imports it but doesn't declare it; [en] brings spacy and phonemizer.
+    "misaki[en]==0.7.4; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    # The spaCy English model misaki loads. Left undeclared, misaki tries to pip-install it at
+    # render time, which fails in a uv environment (no pip) and is undone by every `uv sync`.
+    "en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl ; sys_platform == 'darwin' and platform_machine == 'arm64'",
+]
+
+[tool.uv]
+package = false
+default-groups = ["dev", "kokoro"]

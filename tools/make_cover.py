@@ -1,7 +1,7 @@
 """Render Earful's podcast covers (main feed + Earful Daily) and optionally upload them.
 
-    uv run --no-project python tools/make_cover.py            # render to out/covers/ for review
-    uv run --no-project python tools/make_cover.py --upload   # render, then upload cover.png + daily/cover.png
+    uv run tools/make_cover.py            # render to out/covers/ for review
+    uv run tools/make_cover.py --upload   # render, then upload cover.png + daily/cover.png
 
 Typographic on purpose: podcast apps show covers at ~60-100px, so each cover is one stacked
 wordmark on a colour field, and the two feeds differ first by that field (paper vs. ink) so

@@ -1,0 +1,25 @@
+# Pronunciation dictionary for the Kokoro engine (Gemini works pronunciation out from context
+# and ignores this file). Copy it to pronunciations.toml, which is gitignored: the terms that
+# need fixing depend on what your show covers. Every term here is auto-wrapped into Kokoro's
+# input at render time (tts.apply_pronunciations), so you can write the word naturally in a
+# script and it comes out right, every episode, without hand-annotating.
+#
+# Format:  term = "phonemes"   (misaki notation — mostly IPA; ˈ = primary stress,
+#          ˌ = secondary, ː = long vowel. Capitals are misaki diphthongs: I=aɪ, A=eɪ,
+#          O=oʊ, W=aʊ, Y=ɔɪ.) Matching is whole-word and case-insensitive; a term already
+#          hand-wrapped in a script as [word](/ipa/) is left alone, so manual tuning wins.
+#
+# RULE: only add a term Kokoro actually says WRONG. Verify before and after:
+#     uv run tools/check_pron.py            # phoneme diff per entry
+#     uv run tools/check_pron.py --render    # hear them in out/pron_check.wav
+# An override you didn't ear-check is just a new way to mispronounce something.
+#
+# Already verified correct by the model + espeak fallback, so they don't need entries: TTS,
+# API, RSS, SEO, CMS, Plotly, matplotlib, DataFrame, markdown, subreddit. The fallback spells
+# acronyms as letters on its own, so most don't need help. (If a future stack ships without
+# the espeak fallback, unknown words would break and these would need adding; re-run
+# check_pron.py to confirm.)
+
+[pronunciations]
+# PyPI: the fallback says "pie-pie" (that's PyPy); the convention is "pie-pee-eye".
+PyPI = "pˌaɪpˌiːˈaɪ"

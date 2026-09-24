@@ -1,6 +1,6 @@
 """Verify R2 credentials: put -> get -> public-fetch -> delete a tiny test object.
 
-Run: .venv/bin/python verify_r2.py
+Run: uv run verify_r2.py
 Prints PASS/FAIL per step. Never prints secrets.
 """
 import os

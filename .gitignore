@@ -13,6 +13,8 @@ episode.json
 
 # personal podcast config — copy from config.toml.example
 config.toml
+# personal Kokoro pronunciations (they follow your show's topics) — copy from pronunciations.toml.example
+pronunciations.toml
 
 # local-only notes / scratch
 *.notes.md

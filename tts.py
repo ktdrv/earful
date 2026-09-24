@@ -226,8 +226,12 @@ def synthesize(episode: Episode, config: Config) -> np.ndarray:
     """Render an Episode to a stereo int16 numpy array at config.sample_rate, with
     subtle per-turn variation (speed, level, intra-turn drift, pan, pause) plus a
     faint room-tone bed, for an organic feel."""
-    import mlx.core as mx
-    from mlx_audio.tts.utils import load_model
+    try:
+        import mlx.core as mx
+        from mlx_audio.tts.utils import load_model
+    except ModuleNotFoundError as e:
+        raise RuntimeError("The Kokoro engine needs Apple Silicon and the kokoro dependency group (`uv sync`); "
+                           "on other machines set [tts] engine = \"gemini\"") from e
 
     model = load_model(config.tts_model)
     # Cap MLX's reclaimable cache so it returns memory to the OS instead of letting the
