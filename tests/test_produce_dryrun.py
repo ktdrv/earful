@@ -1,3 +1,5 @@
+import fcntl
+
 import defusedxml.ElementTree as ET
 import numpy as np
 import pytest
@@ -59,6 +61,21 @@ def test_produce_dry_run_named_feed(tmp_path, monkeypatch):
     assert "https://pub-x.r2.dev/audio/test-episode.mp3" in xml  # audio stays under shared audio/
     assert (tmp_path / "out" / "daily" / "episodes.json").exists()
     assert not (tmp_path / "out" / "feed.xml").exists()  # main feed untouched
+
+
+def test_produce_refuses_while_another_render_holds_the_lock(tmp_path, monkeypatch):
+    ep = _dry_run_env(tmp_path, monkeypatch)
+    lock = tmp_path / "render.lock"
+    monkeypatch.setattr(produce, "RENDER_LOCK", lock)
+
+    with open(lock, "w") as held:
+        fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)  # stands in for a render in another process
+        with pytest.raises(SystemExit, match="Another render is running"):
+            produce.produce(str(ep), dry_run=True)
+    assert not (tmp_path / "out").exists()
+
+    produce.produce(str(ep), dry_run=True)  # lock released -> renders normally
+    assert (tmp_path / "out" / "feed.xml").exists()
 
 
 def test_produce_unknown_feed_fails_before_rendering(tmp_path, monkeypatch):

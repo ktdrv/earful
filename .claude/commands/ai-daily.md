@@ -1,28 +1,30 @@
 ---
-description: Research and publish today's ~5-minute AI news brief to the Earful Daily feed
-argument-hint: "[--dry-run]"
+description: Research and write today's ~5-minute AI news brief (run via tools/ai-daily.sh, which publishes it)
+argument-hint: "today=<date> scripts_dir=<path>"
 ---
 
-Make today's **AI Daily** episode and publish it, start to finish, without stopping to ask anything. This runs unattended every morning; nobody is watching. Follow the episode playbook in `CLAUDE.md` — hosts, voice, write-for-the-ear rules, pacing syntax, pronunciation — except where this file overrides it.
+Research and write today's **AI Daily** episode script, start to finish, without stopping to ask anything. This runs unattended every morning; nobody is watching. `tools/ai-daily.sh` publishes the script after you finish — don't publish it yourself. Follow the episode playbook in `CLAUDE.md` — hosts, voice, write-for-the-ear rules, pacing syntax, pronunciation — except where this file overrides it.
+
+Run inputs: $ARGUMENTS
 
 ## Overrides to the playbook
 
 - **Skip step 0 (calibration).** No questions. The audience is the playbook's default: a smart practitioner.
 - **Always research.** This replaces the freshness probe; for news your own knowledge is stale by definition.
 - **Length: about 5 minutes — 850 to 900 words of dialogue, never more than 900.**
-- **Run Python with `uv run --no-project python`**, not the venv path in the playbook (a hook blocks that).
+- **Skip step 3 (produce and publish).** Your job ends when the script file is written.
 
 ## 1. See what's already been covered
 
-Read `scripts_dir` from `config.toml`. Find the `ai-daily-*.md` files there and read the five most recent. Don't re-cover a story unless there's a material new development, and if so, lead with what's new.
+Find the `ai-daily-*.md` files in `scripts_dir` and read the five most recent. Don't re-cover a story unless there's a material new development, and if so, lead with what's new.
 
 ## 2. Research
 
-Run `date` for today's date. The coverage window is the last 48 hours.
+Today's date is in the run inputs. The coverage window is the last 48 hours.
 
 Scope is practitioner-focused: model releases and major updates, lab and company news that changes what people can build, developer tools and agents, notable research with code or results people will actually use. Policy, regulation and funding only when they're genuinely big.
 
-Pick 3 to 5 items. For each, **fetch** at least one page — prefer the primary source (the lab's announcement, the paper, the repo, the changelog) — and confirm it's dated inside the window. A search-result snippet alone doesn't count; if you can't fetch a source, drop the item. Nobody reviews this episode before it goes out, so this rule is the only thing between the listener and a wrong claim. Don't state a number you didn't read in a fetched source.
+Pick 3 to 5 items. For each, **fetch** at least one page — prefer the primary source (the lab's announcement, the paper, the repo, the changelog) — and confirm it's dated inside the window. A search-result snippet alone doesn't count; if you can't fetch a source, drop the item. Nobody reviews this episode before it goes out, so this rule is the only thing between the listener and a wrong claim. Don't state a number you didn't read in a fetched source, and credit each claim to the source you actually read: if the lab's own page wouldn't load and the numbers came from a news outlet, say "per VentureBeat", never "the company's charts show". When the primary source can't be fetched, a number needs a reputable outlet or two sources that agree.
 
 If fewer than 3 news items qualify, fill with notable community projects — open-source releases, interesting repos, tools and demos people are building on the new stuff — held to the same rule: a repo or post you actually opened. Never skip the day.
 
@@ -37,8 +39,4 @@ If fewer than 3 news items qualify, fill with notable community projects — ope
 
 Count the dialogue words (cue names and parentheticals excluded) and cut to 900 if over.
 
-## 4. Publish
-
-Run `uv run --no-project python produce.py <slug> --feed daily $ARGUMENTS`. If it fails, print the error and stop; don't modify the pipeline to work around it.
-
-Finish by printing the title, the dialogue word count, and the feed URL (or the dry-run path).
+Finish by printing the title, the dialogue word count, and the script path.

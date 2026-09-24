@@ -1,4 +1,6 @@
 import argparse
+import fcntl
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -10,6 +12,9 @@ from storage import Storage
 
 MANIFEST_KEY = "episodes.json"
 FEED_KEY = "feed.xml"
+# One render at a time across every checkout/worktree: two concurrent Kokoro loads can
+# exhaust this Mac's memory (an unattended morning run may coincide with a manual one).
+RENDER_LOCK = Path(tempfile.gettempdir()) / "earful-render.lock"
 
 
 def resolve_episode_path(arg: str, scripts_dir: str) -> str:
@@ -29,6 +34,12 @@ def produce(episode_path: str, dry_run: bool, feed_name: str | None = None) -> s
     # A named feed keeps its manifest, feed and cover under `<name>/`. Audio stays under the
     # shared audio/ prefix; slugs are unique across feeds (daily titles carry the date).
     prefix = f"{feed_name}/" if feed_name else ""
+    # Held until this function returns and `lock` is closed; the OS drops it if we crash.
+    lock = open(RENDER_LOCK, "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        raise SystemExit("Another render is running; try again when it finishes")
     path = resolve_episode_path(episode_path, cfg.scripts_dir)
     episode = load_episode(path, cfg.hosts)
     samples = tts.synthesize(episode, cfg)
