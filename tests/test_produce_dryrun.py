@@ -3,6 +3,7 @@ import fcntl
 import defusedxml.ElementTree as ET
 import numpy as np
 import pytest
+import gemini_tts
 import produce
 import tts
 
@@ -76,6 +77,31 @@ def test_produce_refuses_while_another_render_holds_the_lock(tmp_path, monkeypat
 
     produce.produce(str(ep), dry_run=True)  # lock released -> renders normally
     assert (tmp_path / "out" / "feed.xml").exists()
+
+
+def test_produce_gemini_engine_skips_the_mic_chain(tmp_path, monkeypatch):
+    ep = _dry_run_env(tmp_path, monkeypatch)
+    monkeypatch.setattr(gemini_tts, "synthesize", lambda episode, config: tts.synthesize(episode, config))
+    seen = {}
+    real_write = tts.write_mp3
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return real_write(*args, **kwargs)
+    monkeypatch.setattr(tts, "write_mp3", spy)
+
+    produce.produce(str(ep), dry_run=True, engine="gemini")
+    assert seen["mic_chain"] is False
+    produce.produce(str(ep), dry_run=True)  # config default is kokoro
+    assert seen["mic_chain"] is True
+    assert (tmp_path / "out" / "test-episode.mp3").exists()
+
+
+def test_produce_unknown_engine_fails_before_rendering(tmp_path, monkeypatch):
+    ep = _dry_run_env(tmp_path, monkeypatch)
+
+    with pytest.raises(SystemExit, match="Unknown TTS engine"):
+        produce.produce(str(ep), dry_run=True, engine="nope")
+    assert not (tmp_path / "out").exists()
 
 
 def test_produce_unknown_feed_fails_before_rendering(tmp_path, monkeypatch):

@@ -199,6 +199,12 @@ to render locally (out/) without uploading when testing.
 - Config (podcast metadata, voices) lives in `config.toml`; R2 creds in `.env`.
 - TTS is isolated behind `tts.synthesize(episode, config)` — swapping engines is a
   single-file change.
+- Two engines: Kokoro (`tts.py`, local) and Gemini (`gemini_tts.py`, paid API, needs
+  `GEMINI_API_KEY`), chosen by `[tts] engine` in `config.toml` or `produce.py --engine`.
+  Write scripts the same way for both. Gemini maps the pacing directions to its own tags,
+  also acts vocal cues like `(laughs)` or `(sigh)`, and treats a parenthetical that *opens*
+  a line, like `(dryly)`, as delivery direction for that turn. It ignores
+  `pronunciations.toml` and reads `[word](/ipa/)` overrides as the plain word.
 - `verify_r2.py` re-checks R2 connectivity if publishing fails.
 - The feed lives at `<R2_PUBLIC_URL_BASE>/feed.xml`; the user subscribes their
   podcast app to it once.

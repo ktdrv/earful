@@ -6,6 +6,7 @@ from pathlib import Path
 
 import config as config_mod
 import feed
+import gemini_tts
 import tts
 from episode import load_episode
 from storage import Storage
@@ -25,11 +26,14 @@ def resolve_episode_path(arg: str, scripts_dir: str) -> str:
     return str(Path(scripts_dir) / name)
 
 
-def produce(episode_path: str, dry_run: bool, feed_name: str | None = None) -> str:
+def produce(episode_path: str, dry_run: bool, feed_name: str | None = None, engine: str | None = None) -> str:
     cfg = config_mod.load_config()
-    # Fail on a typo'd feed name before spending minutes on the render.
+    engine = engine or cfg.engine
+    # Fail on a typo'd feed or engine name before spending minutes on the render.
     if feed_name and feed_name not in cfg.feeds:
         raise SystemExit(f"No [feeds.{feed_name}] table in config.toml")
+    if engine not in ("kokoro", "gemini"):
+        raise SystemExit(f"Unknown TTS engine {engine!r}; use kokoro or gemini")
     podcast = cfg.feeds[feed_name] if feed_name else cfg.podcast
     # A named feed keeps its manifest, feed and cover under `<name>/`. Audio stays under the
     # shared audio/ prefix; slugs are unique across feeds (daily titles carry the date).
@@ -42,13 +46,15 @@ def produce(episode_path: str, dry_run: bool, feed_name: str | None = None) -> s
         raise SystemExit("Another render is running; try again when it finishes")
     path = resolve_episode_path(episode_path, cfg.scripts_dir)
     episode = load_episode(path, cfg.hosts)
-    samples = tts.synthesize(episode, cfg)
+    samples = (gemini_tts if engine == "gemini" else tts).synthesize(episode, cfg)
 
     Path("out").mkdir(exist_ok=True)
     slug = feed.slugify(episode.title)
     mp3_path = f"out/{slug}.mp3"
     tags = {"title": episode.title, "artist": podcast.title, "album": podcast.title}
-    duration, size = tts.write_mp3(samples, cfg.sample_rate, mp3_path, tags, mic_chain=cfg.mic_chain,
+    # The mic chain fakes a physical mic on Kokoro's dry output; Gemini already sounds recorded,
+    # so it only gets loudness normalization.
+    duration, size = tts.write_mp3(samples, cfg.sample_rate, mp3_path, tags, mic_chain=cfg.mic_chain and engine == "kokoro",
                                    deess_intensity=cfg.deess_intensity, loudness_lufs=cfg.loudness_lufs)
 
     guid = feed.make_guid(Path(mp3_path).read_bytes())
@@ -96,5 +102,6 @@ if __name__ == "__main__":
     parser.add_argument("episode", help="episode name (resolved in scripts_dir) or path to a .md script")
     parser.add_argument("--dry-run", action="store_true", help="render locally; skip R2 upload")
     parser.add_argument("--feed", help="publish to the [feeds.<name>] feed from config.toml instead of the main one")
+    parser.add_argument("--engine", choices=["kokoro", "gemini"], help="TTS engine for this run (default: [tts] engine in config.toml)")
     args = parser.parse_args()
-    produce(args.episode, args.dry_run, args.feed)
+    produce(args.episode, args.dry_run, args.feed, args.engine)

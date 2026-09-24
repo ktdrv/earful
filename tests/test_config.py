@@ -39,6 +39,7 @@ def test_load_config_reads_toml_and_env(tmp_path, monkeypatch):
     assert c.breath_db == -28.0
     assert c.plosive_db == -22.0 and c.plosive_prob == 0.4
     assert c.deess_intensity == 0.4 and c.loudness_lufs == -16.0
+    assert c.engine == "kokoro" and c.gemini_model == "gemini-3.8-flash-tts"  # defaults when unset
     assert c.r2.bucket == "val-R2_BUCKET"
     assert c.r2.public_base == "https://pub-x.r2.dev"  # trailing slash stripped
     # [voices] fallback: hosts derived with name == id, empty persona
@@ -58,6 +59,7 @@ def test_load_config_reads_host_personas(tmp_path, monkeypatch):
         [hosts.host_a]
         name = "Theo"
         voice = "am_puck"
+        gemini_voice = "Puck"
         persona = "curious driver"
 
         [hosts.host_b]
@@ -70,6 +72,7 @@ def test_load_config_reads_host_personas(tmp_path, monkeypatch):
     c = cfg.load_config(toml_path=str(toml), env_path="/nonexistent")
     assert c.hosts["host_a"].name == "Theo"
     assert c.hosts["host_a"].persona == "curious driver"
+    assert c.hosts["host_a"].gemini_voice == "Puck" and c.hosts["host_b"].gemini_voice == ""
     assert c.voices == {"host_a": "am_puck", "host_b": "af_heart"}  # derived for tts
 
 

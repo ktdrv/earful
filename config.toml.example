@@ -24,19 +24,28 @@ link = ""
 
 # Each host is a character: a name, a Kokoro voice, and a persona that shapes how
 # the script is written. Voice prefixes: am_/af_ = US male/female, bm_/bf_ = UK.
+# gemini_voice is the host's voice when [tts] engine = "gemini": one of Gemini's prebuilt
+# voices (https://ai.google.dev/gemini-api/docs/speech-generation#voices).
 [hosts.host_a]
 name = "Theo"
 voice = "am_puck"
+gemini_voice = "Puck"
 pan = -0.15   # stereo placement: -1 left .. +1 right
 persona = "A peer who's done the homework, not a novice — the one who drives and presses. Quick and probing: he takes positions, defends them, hunts for the underlying mechanism and the spot where an argument doesn't hold. Edge and energy; shorter, sharper lines. When he asks a question it's to pressure-test, not because he's lost."
 
 [hosts.host_b]
 name = "Mara"
 voice = "af_heart"
+gemini_voice = "Kore"
 pan = 0.15
 persona = "A peer who's done the homework, not a professor — the one who complicates and grounds. Reaches for the specific case, the number, the caveat, the 'it's messier than that,' and pushes back when Theo's framing gets too tidy. Wry, a little unhurried, comfortable sitting in nuance. She's thinking alongside, never lecturing."
 
 [tts]
+# "kokoro" renders locally (free, needs Apple Silicon). "gemini" renders with the Gemini API
+# (needs GEMINI_API_KEY in .env, about $0.25 per 15 minutes); it voices both hosts in one pass,
+# so only sample_rate and loudness_lufs below apply to it. Override per run: produce.py --engine.
+engine = "kokoro"
+gemini_model = "gemini-3.8-flash-tts"   # or "gemini-3.8-flash-lite-tts": cheaper, slightly less polished
 model = "mlx-community/Kokoro-82M-bf16"
 lang_code = "a"
 sample_rate = 24000

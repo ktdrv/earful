@@ -10,6 +10,7 @@ class Turn:
     pause_after: int | None = None  # explicit gap (ms) to next turn; negative = overlap
     speed: float | None = None      # per-line speed override
     gain_db: float | None = None    # per-line level override
+    raw: str = ""  # the line as written, before the Kokoro transform; Gemini does its own mapping
 
 
 @dataclass(frozen=True)
@@ -98,7 +99,7 @@ def parse_markdown(text: str, speaker_ids: dict[str, str]) -> Episode:
     for spk, body_text in raw:
         text_, pause_after, speed = transform_turn(body_text)
         if text_ or pause_after is not None:
-            turns.append(Turn(speaker=spk, text=text_, pause_after=pause_after, speed=speed))
+            turns.append(Turn(speaker=spk, text=text_, pause_after=pause_after, speed=speed, raw=body_text.strip()))
     if not turns:
         raise ValueError("episode has no turns")
     return Episode(title=meta.get("title", ""), description=meta.get("description", ""), turns=turns)

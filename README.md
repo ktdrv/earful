@@ -20,7 +20,9 @@ script.md ─▶ produce.py
 - **TTS** — [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) via
   [mlx-audio](https://github.com/Blaizzy/mlx-audio): free, local, fast on Apple
   Silicon. Isolated behind `tts.synthesize(episode, config)`, so swapping engines is
-  a one-file change.
+  a one-file change. Or [Gemini TTS](https://ai.google.dev/gemini-api/docs/speech-generation)
+  (`gemini_tts.py`, `[tts] engine = "gemini"`): a paid API, about $0.25 per 15 minutes,
+  that voices both hosts in one pass and sounds markedly more natural.
 - **Hosting** — any S3-compatible store (R2, AWS S3, Backblaze B2, Spaces, Wasabi,
   MinIO). R2 is the default because its free tier serves a public URL with no custom
   domain and no egress fees. See [Hosting](#hosting).
@@ -93,7 +95,8 @@ explanation split across two voices. `CLAUDE.md` has the why and the craft.
 
 - **`config.toml`** — podcast metadata, and the two hosts: each is a `name`, a
   Kokoro `voice` (`am_`/`af_` = US male/female, `bm_`/`bf_` = UK; full
-  [voice list](https://github.com/hexgrad/kokoro)), a stereo `pan`, and a `persona`
+  [voice list](https://github.com/hexgrad/kokoro)), a `gemini_voice` for the Gemini
+  engine, a stereo `pan`, and a `persona`
   that steers how Claude writes that character. The `[tts]` block tunes pacing,
   per-turn variation, the mic/room-tone realism layer, and mastering loudness — each
   field is commented.

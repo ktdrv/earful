@@ -39,6 +39,7 @@ class Host:
     voice: str
     persona: str  # used by the script-authoring step to write this host in character
     pan: float = 0.0  # stereo placement, -1 (left) .. +1 (right)
+    gemini_voice: str = ""  # Gemini prebuilt voice (e.g. "Puck"), used when engine = "gemini"
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,8 @@ class Config:
     feeds: dict[str, Podcast]  # extra feeds from [feeds.<name>]: overrides layered on [podcast]
     hosts: dict[str, Host]
     voices: dict[str, str]  # derived {host_id: voice}; what tts.synthesize consumes
+    engine: str        # "kokoro" (local, tts.py) or "gemini" (Gemini API, gemini_tts.py)
+    gemini_model: str
     tts_model: str
     lang_code: str
     pause_min_ms: int
@@ -96,7 +99,8 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
     # Hosts: prefer the [hosts.*] tables (name + voice + persona). Fall back to a
     # bare [voices] table for backward compatibility (name defaults to the id).
     if "hosts" in data:
-        hosts = {hid: Host(name=h["name"], voice=h["voice"], persona=h.get("persona", ""), pan=float(h.get("pan", 0.0))) for hid, h in data["hosts"].items()}
+        hosts = {hid: Host(name=h["name"], voice=h["voice"], persona=h.get("persona", ""), pan=float(h.get("pan", 0.0)),
+                           gemini_voice=h.get("gemini_voice", "")) for hid, h in data["hosts"].items()}
     else:
         hosts = {hid: Host(name=hid, voice=v, persona="") for hid, v in data.get("voices", {}).items()}
     voices = {hid: h.voice for hid, h in hosts.items()}
@@ -120,6 +124,8 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
         feeds={name: replace(podcast, **overrides) for name, overrides in data.get("feeds", {}).items()},
         hosts=hosts,
         voices=voices,
+        engine=tts.get("engine", "kokoro"),
+        gemini_model=tts.get("gemini_model", "gemini-3.8-flash-tts"),
         tts_model=tts.get("model", "mlx-community/Kokoro-82M-bf16"),
         lang_code=tts.get("lang_code", "a"),
         pause_min_ms=int(tts.get("pause_min_ms", -100)),  # negative => brief overlap (hosts talk over)
