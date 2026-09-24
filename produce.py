@@ -20,8 +20,15 @@ def resolve_episode_path(arg: str, scripts_dir: str) -> str:
     return str(Path(scripts_dir) / name)
 
 
-def produce(episode_path: str, dry_run: bool) -> str:
+def produce(episode_path: str, dry_run: bool, feed_name: str | None = None) -> str:
     cfg = config_mod.load_config()
+    # Fail on a typo'd feed name before spending minutes on the render.
+    if feed_name and feed_name not in cfg.feeds:
+        raise SystemExit(f"No [feeds.{feed_name}] table in config.toml")
+    podcast = cfg.feeds[feed_name] if feed_name else cfg.podcast
+    # A named feed keeps its manifest, feed and cover under `<name>/`. Audio stays under the
+    # shared audio/ prefix; slugs are unique across feeds (daily titles carry the date).
+    prefix = f"{feed_name}/" if feed_name else ""
     path = resolve_episode_path(episode_path, cfg.scripts_dir)
     episode = load_episode(path, cfg.hosts)
     samples = tts.synthesize(episode, cfg)
@@ -29,7 +36,7 @@ def produce(episode_path: str, dry_run: bool) -> str:
     Path("out").mkdir(exist_ok=True)
     slug = feed.slugify(episode.title)
     mp3_path = f"out/{slug}.mp3"
-    tags = {"title": episode.title, "artist": cfg.podcast.title, "album": cfg.podcast.title}
+    tags = {"title": episode.title, "artist": podcast.title, "album": podcast.title}
     duration, size = tts.write_mp3(samples, cfg.sample_rate, mp3_path, tags, mic_chain=cfg.mic_chain,
                                    deess_intensity=cfg.deess_intensity, loudness_lufs=cfg.loudness_lufs)
 
@@ -44,27 +51,30 @@ def produce(episode_path: str, dry_run: bool) -> str:
         title=episode.title, description=episode.description, guid=guid,
         audio_url=audio_url, length_bytes=size, duration_secs=duration, pubdate=pubdate,
     )
+    cover_key = f"{prefix}cover.png"
 
     if dry_run:
-        local = Path("out/episodes.json")
+        out_dir = Path("out") / feed_name if feed_name else Path("out")
+        out_dir.mkdir(exist_ok=True)
+        local = out_dir / "episodes.json"
         manifest = feed.manifest_from_json(local.read_text()) if local.exists() else []
         manifest = [r for r in manifest if feed.slugify(r.title) != feed.slugify(record.title)]  # idempotent re-publish (replace same-title)
         manifest.append(record)
         local.write_text(feed.manifest_to_json(manifest))
-        Path("out/feed.xml").write_text(feed.render_feed(cfg.podcast, manifest, cfg.r2.public_base))
-        print(f"[dry-run] wrote {mp3_path}, out/feed.xml, out/episodes.json")
-        return "out/feed.xml"
+        (out_dir / "feed.xml").write_text(feed.render_feed(podcast, manifest, cfg.r2.public_base, cover_key))
+        print(f"[dry-run] wrote {mp3_path}, {out_dir}/feed.xml, {out_dir}/episodes.json")
+        return f"{out_dir}/feed.xml"
 
     storage = Storage(cfg.r2)
     storage.upload_file(mp3_path, audio_key, "audio/mpeg")
-    raw = storage.download_bytes(MANIFEST_KEY)
+    raw = storage.download_bytes(prefix + MANIFEST_KEY)
     manifest = feed.manifest_from_json(raw.decode()) if raw else []
     manifest = [r for r in manifest if feed.slugify(r.title) != feed.slugify(record.title)]  # idempotent re-publish (replace same-title)
     manifest.append(record)
-    storage.upload_bytes(feed.manifest_to_json(manifest).encode(), MANIFEST_KEY, "application/json")
+    storage.upload_bytes(feed.manifest_to_json(manifest).encode(), prefix + MANIFEST_KEY, "application/json")
     feed_url = storage.upload_bytes(
-        feed.render_feed(cfg.podcast, manifest, cfg.r2.public_base).encode(),
-        FEED_KEY, "application/rss+xml; charset=utf-8",
+        feed.render_feed(podcast, manifest, cfg.r2.public_base, cover_key).encode(),
+        prefix + FEED_KEY, "application/rss+xml; charset=utf-8",
     )
     print(f"Published: {episode.title}\nFeed: {feed_url}")
     return feed_url
@@ -74,5 +84,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Produce and publish an Earful episode.")
     parser.add_argument("episode", help="episode name (resolved in scripts_dir) or path to a .md script")
     parser.add_argument("--dry-run", action="store_true", help="render locally; skip R2 upload")
+    parser.add_argument("--feed", help="publish to the [feeds.<name>] feed from config.toml instead of the main one")
     args = parser.parse_args()
-    produce(args.episode, args.dry_run)
+    produce(args.episode, args.dry_run, args.feed)

@@ -51,8 +51,8 @@ def manifest_from_json(text: str) -> list[EpisodeRecord]:
     return [EpisodeRecord(**r) for r in json.loads(text)]
 
 
-def render_feed(podcast, records: list[EpisodeRecord], public_base: str) -> str:
-    cover = public_url(public_base, "cover.png")
+def render_feed(podcast, records: list[EpisodeRecord], public_base: str, cover_key: str = "cover.png") -> str:
+    cover = public_url(public_base, cover_key)
     explicit = "yes" if podcast.explicit else "no"
     items = []
     for r in reversed(records):  # manifest stored oldest-first; feed shows newest-first

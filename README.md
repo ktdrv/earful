@@ -78,6 +78,7 @@ THEO: —and that took months, not the two weeks everyone budgeted.
 ```bash
 .venv/bin/python produce.py my-episode            # resolves scripts_dir/my-episode.md
 .venv/bin/python produce.py my-episode --dry-run  # render to out/ only, no upload
+.venv/bin/python produce.py my-episode --feed daily  # publish to a second feed ([feeds.daily] in config.toml)
 ```
 
 Each line is a host **cue** (`Theo`/`Mara`, from `config.toml`) and a colon; a turn runs to

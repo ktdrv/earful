@@ -1,6 +1,6 @@
 import os
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -44,6 +44,7 @@ class Host:
 @dataclass(frozen=True)
 class Config:
     podcast: Podcast
+    feeds: dict[str, Podcast]  # extra feeds from [feeds.<name>]: overrides layered on [podcast]
     hosts: dict[str, Host]
     voices: dict[str, str]  # derived {host_id: voice}; what tts.synthesize consumes
     tts_model: str
@@ -116,6 +117,7 @@ def load_config(toml_path: str = "config.toml", env_path: str = ".env") -> Confi
     )
     return Config(
         podcast=podcast,
+        feeds={name: replace(podcast, **overrides) for name, overrides in data.get("feeds", {}).items()},
         hosts=hosts,
         voices=voices,
         tts_model=tts.get("model", "mlx-community/Kokoro-82M-bf16"),

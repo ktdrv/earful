@@ -30,6 +30,11 @@ def test_render_feed_is_valid_xml_with_essentials():
     assert "https://pub-x.r2.dev/cover.png" in xml  # channel image
 
 
+def test_render_feed_cover_key():
+    xml = feed.render_feed(_podcast(), [_rec("First", "g1")], "https://pub-x.r2.dev", "daily/cover.png")
+    assert "https://pub-x.r2.dev/daily/cover.png" in xml
+
+
 def test_render_feed_newest_first():
     xml = feed.render_feed(_podcast(), [_rec("Old", "g1"), _rec("New", "g2")], "https://pub-x.r2.dev")
     assert xml.index("New") < xml.index("Old")

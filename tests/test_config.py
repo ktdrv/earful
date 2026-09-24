@@ -29,6 +29,7 @@ def test_load_config_reads_toml_and_env(tmp_path, monkeypatch):
 
     assert c.podcast.title == "Earful"
     assert c.podcast.explicit is False
+    assert c.feeds == {}  # no [feeds.*] tables -> no extra feeds
     assert c.voices["host_a"] == "am_michael"
     assert c.speed == 1.0  # Kokoro default when unset (listener applies their own playback speed)
     assert c.sentence_pause_ms == 100 and c.beat_pause_ms == 400
@@ -70,6 +71,33 @@ def test_load_config_reads_host_personas(tmp_path, monkeypatch):
     assert c.hosts["host_a"].name == "Theo"
     assert c.hosts["host_a"].persona == "curious driver"
     assert c.voices == {"host_a": "am_puck", "host_b": "af_heart"}  # derived for tts
+
+
+def test_load_config_feeds_inherit_from_podcast(tmp_path, monkeypatch):
+    toml = tmp_path / "config.toml"
+    toml.write_text(textwrap.dedent("""
+        [podcast]
+        title = "Earful"
+        description = "desc"
+        author = "Me"
+        email = "me@example.com"
+
+        [feeds.daily]
+        title = "Earful Daily"
+        description = "daily desc"
+
+        [voices]
+        host_a = "am_michael"
+    """))
+    for k in ("R2_ENDPOINT", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET", "R2_PUBLIC_URL_BASE"):
+        monkeypatch.setenv(k, "x")
+
+    c = cfg.load_config(toml_path=str(toml), env_path="/nonexistent")
+
+    assert c.feeds["daily"].title == "Earful Daily"
+    assert c.feeds["daily"].description == "daily desc"
+    assert c.feeds["daily"].author == "Me"  # inherited from [podcast]
+    assert c.podcast.title == "Earful"  # main feed unchanged
 
 
 def test_load_config_scripts_dir_default_and_override(tmp_path, monkeypatch):

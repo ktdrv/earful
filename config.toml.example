@@ -15,6 +15,13 @@ explicit = false
 category = "Education"
 link = ""
 
+# Optional extra feeds, published with `produce.py <episode> --feed <name>`. Each inherits
+# every [podcast] field and overrides the ones set here. Its feed.xml, episodes.json and
+# cover.png live under `<name>/` in the bucket, so subscribe to <PUBLIC_URL>/<name>/feed.xml.
+# [feeds.daily]
+# title = "Earful Daily"
+# description = "A five-minute brief on what happened in AI, every morning."
+
 # Each host is a character: a name, a Kokoro voice, and a persona that shapes how
 # the script is written. Voice prefixes: am_/af_ = US male/female, bm_/bf_ = UK.
 [hosts.host_a]
