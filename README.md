@@ -46,7 +46,7 @@ into `.env` (it's annotated). Any other S3-compatible store works too — see
 
 ```bash
 .venv/bin/python verify_r2.py          # put→get→public-fetch→delete; never prints secrets
-.venv/bin/python tools/make_cover.py   # generate + upload cover.png (once)
+.venv/bin/python tools/make_cover.py --upload  # render + upload cover.png and daily/cover.png (once)
 ```
 
 Then subscribe your podcast app to `<R2_PUBLIC_URL_BASE>/feed.xml` — once. Every
