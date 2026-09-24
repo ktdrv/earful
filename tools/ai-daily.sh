@@ -16,20 +16,25 @@ fail() {
 }
 
 SCRIPTS=$(uv run --no-project python -c 'import tomllib; print(tomllib.load(open("config.toml", "rb")).get("scripts_dir", "scripts"))')
+# macOS privacy protection blocks launchd-started shells and Python from ~/Documents, where the
+# vault lives, while claude itself has access. So the agent writes the script to this staging
+# folder (gitignored), which this script and produce.py can read, plus a reading copy in the vault.
+STAGE="$PWD/out/ai-daily"
+mkdir -p "$STAGE"
 MARKER=$(mktemp)
 echo "$(date '+%F %T') start $*" >> "$LOG"
 
 # The agent reads untrusted web pages with nobody watching, so it gets web research, reads of
-# the repo and vault, and writes inside the vault folder only: no Bash, no repo edits, no .env.
-# Anything else is denied rather than prompted. Publishing happens below, not in the agent,
-# so a failed render or upload surfaces as this script's exit code.
-"$CLAUDE" -p "/ai-daily today=$(date '+%A, %B %-d, %Y') scripts_dir=$SCRIPTS" --model opus \
+# the repo and vault, and writes to the staging and vault folders only: no Bash, no other repo
+# edits, no .env. Anything else is denied rather than prompted. Publishing happens below, not in
+# the agent, so a failed render or upload surfaces as this script's exit code.
+"$CLAUDE" -p "/ai-daily today=$(date '+%A, %B %-d, %Y') staging_dir=$STAGE scripts_dir=$SCRIPTS" --model opus \
   --add-dir "$SCRIPTS" \
-  --allowedTools "WebSearch" "WebFetch" "Edit(/$SCRIPTS/**)" \
+  --allowedTools "WebSearch" "WebFetch" "Edit(/$STAGE/**)" "Edit(/$SCRIPTS/**)" \
   --disallowedTools "Bash" "Read(./.env)" \
   --strict-mcp-config --permission-prompts none >> "$LOG" 2>&1
 status=$?
-new=$(find "$SCRIPTS" -name 'ai-daily-*.md' -newer "$MARKER" | head -1)
+new=$(find "$STAGE" -name 'ai-daily-*.md' -newer "$MARKER" | head -1)
 rm -f "$MARKER"
 
 if [ $status -ne 0 ]; then

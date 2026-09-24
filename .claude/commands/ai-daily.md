@@ -1,6 +1,6 @@
 ---
 description: Research and write today's ~5-minute AI news brief (run via tools/ai-daily.sh, which publishes it)
-argument-hint: "today=<date> scripts_dir=<path>"
+argument-hint: "today=<date> staging_dir=<path> scripts_dir=<path>"
 ---
 
 Research and write today's **AI Daily** episode script, start to finish, without stopping to ask anything. This runs unattended every morning; nobody is watching. `tools/ai-daily.sh` publishes the script after you finish — don't publish it yourself. Follow the episode playbook in `CLAUDE.md` — hosts, voice, write-for-the-ear rules, pacing syntax, pronunciation — except where this file overrides it.
@@ -16,7 +16,7 @@ Run inputs: $ARGUMENTS
 
 ## 1. See what's already been covered
 
-Find the `ai-daily-*.md` files in `scripts_dir` and read the five most recent. Don't re-cover a story unless there's a material new development, and if so, lead with what's new.
+Find the `ai-daily-*.md` files in `staging_dir` and read the five most recent. Don't re-cover a story unless there's a material new development, and if so, lead with what's new.
 
 ## 2. Research
 
@@ -31,7 +31,7 @@ If fewer than 3 news items qualify, fill with notable community projects — ope
 ## 3. Write the script
 
 - **Title:** `AI Daily — <Mon D>: <top story in a few words>`, e.g. `AI Daily — Sep 24: Gemini 4 ships`. The date is required: publishing replaces any existing episode with the same title.
-- **File:** `<scripts_dir>/<slug>.md`. The slug is the title lowercased, each run of non-alphanumeric characters turned into one hyphen, leading/trailing hyphens trimmed (the rule in `feed.slugify`) — e.g. `ai-daily-sep-24-gemini-4-ships`.
+- **Files:** write the script to `<staging_dir>/<slug>.md` (the copy that gets published), then write the identical content to `<scripts_dir>/<slug>.md` (the reading copy in the Obsidian vault). The slug is the title lowercased, each run of non-alphanumeric characters turned into one hyphen, leading/trailing hyphens trimmed (the rule in `feed.slugify`) — e.g. `ai-daily-sep-24-gemini-4-ships`.
 - **Frontmatter `description`:** one line — a one-sentence summary, then `Links:` and the primary URLs separated by ` · `.
 - **Notes** (above the first cue): each item with its headline and source URLs.
 - **Shape:** cold open straight into the top story. Per item, one host lands what happened, the other adds why it matters or the catch, and they move on. Brisk, not a debate — the listener will look it up if they want more. Sign off in one line; no recap. Theo and Mara stay in character.
@@ -39,4 +39,4 @@ If fewer than 3 news items qualify, fill with notable community projects — ope
 
 Count the dialogue words (cue names and parentheticals excluded) and cut to 900 if over.
 
-Finish by printing the title, the dialogue word count, and the script path.
+Finish by printing the title, the dialogue word count, and both script paths.
