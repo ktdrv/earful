@@ -94,7 +94,7 @@ def chunk_turns(turns: list[Turn], max_words: int) -> list[list[Turn]]:
 
 
 def request_body(turns: list[Turn], config: Config) -> dict:
-    """A two-speaker 'conversational' request: each turn is its own text item tagged with the host's name."""
+    """A two-speaker request: each turn is its own text item tagged with the host's name."""
     items = []
     for t in turns:
         text, style = to_gemini(t.raw)
@@ -108,8 +108,8 @@ def request_body(turns: list[Turn], config: Config) -> dict:
         "model": config.gemini_model,
         "input": [{"type": "user_input", "content": items}],
         "response_format": {"type": "audio"},
+        # No "mode": "conversational": the docs still list it, but since 2026-10-22 the API rejects it with a 400.
         "generation_config": {"speech_config": {
-            "mode": "conversational",
             "speakers": [{"speaker": h.name, "voice": h.gemini_voice} for h in config.hosts.values()],
         }},
     }

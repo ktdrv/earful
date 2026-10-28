@@ -68,7 +68,7 @@ def test_chunk_turns_never_leaves_a_tiny_last_chunk():
     assert _chunk_words(g.chunk_turns(_turns(400, 390, 15, 2), 800)) == [400, 407]
 
 
-def test_request_body_is_two_speaker_conversational():
+def test_request_body_is_two_speaker():
     body = g.request_body([Turn("host_a", "", raw="(dryly) Hi."), Turn("host_b", "", raw="(ignored note)"),
                            Turn("host_b", "", raw="Hello.")], Cfg())
     items = body["input"][0]["content"]
@@ -77,7 +77,6 @@ def test_request_body_is_two_speaker_conversational():
     assert items[1]["annotations"] == [{"type": "speech_metadata", "speaker": "Mara"}]
     assert body["model"] == "gemini-3.8-flash-tts"
     assert body["generation_config"]["speech_config"] == {
-        "mode": "conversational",
         "speakers": [{"speaker": "Theo", "voice": "Puck"}, {"speaker": "Mara", "voice": "Kore"}],
     }
 
