@@ -1,26 +1,32 @@
 #!/bin/bash
-# Morning AI Daily run (macOS): headless Claude Code researches and writes today's brief, then this
-# script publishes it to the [feeds.daily] feed. Meant to be fired by a scheduler (a launchd agent
-# or cron); safe to run by hand. Args pass through to produce.py (e.g. --dry-run).
-# CLAUDE=<binary> overrides claude, for testing.
+# Morning AI Daily run: headless Claude Code researches and writes today's brief, then this script
+# publishes it to the [feeds.daily] feed. Meant to be fired by a scheduler (a launchd agent, cron, or
+# a container loop); safe to run by hand. Args pass through to produce.py (e.g. --dry-run).
+# Env overrides: CLAUDE=<binary> (for testing), LOG, SCRIPTS_DIR (instead of config.toml's),
+# STAGE (see below), NTFY_URL + NTFY_TOKEN (push failures to an ntfy topic URL).
 set -u
 cd "$(dirname "$0")/.."
 # Schedulers start with a bare PATH; these are the usual install locations for claude and uv.
 export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 CLAUDE="${CLAUDE:-claude}"
-LOG="$HOME/Library/Logs/earful-ai-daily.log"
+LOG="${LOG:-$HOME/Library/Logs/earful-ai-daily.log}"
 
 fail() {
   echo "$(date '+%F %T') FAILED: $1" >> "$LOG"
-  osascript -e "display notification \"$1\" with title \"Earful Daily\""
+  if [ -n "${NTFY_URL:-}" ]; then
+    curl -s -o /dev/null -H "Authorization: Bearer ${NTFY_TOKEN:-}" -H "Title: Earful Daily failed" -d "$1" "$NTFY_URL"
+  fi
+  if command -v osascript >/dev/null; then
+    osascript -e "display notification \"$1\" with title \"Earful Daily\""
+  fi
 }
 
-SCRIPTS=$(uv run --no-project python -c 'import tomllib; print(tomllib.load(open("config.toml", "rb")).get("scripts_dir", "scripts"))')
+SCRIPTS="${SCRIPTS_DIR:-$(uv run --no-project python -c 'import tomllib; print(tomllib.load(open("config.toml", "rb")).get("scripts_dir", "scripts"))')}"
 # macOS privacy protection blocks launchd-started shells and Python from ~/Documents and similar
 # folders, where scripts_dir may live, while claude itself has access. So the agent writes the
 # script to this staging folder (gitignored), which this script and produce.py can read, plus a
-# reading copy in scripts_dir.
-STAGE="$PWD/out/ai-daily"
+# reading copy in scripts_dir. Where that block doesn't exist (Linux), STAGE=$SCRIPTS_DIR skips it.
+STAGE="${STAGE:-$PWD/out/ai-daily}"
 mkdir -p "$STAGE"
 MARKER=$(mktemp)
 echo "$(date '+%F %T') start $*" >> "$LOG"
@@ -35,7 +41,8 @@ echo "$(date '+%F %T') start $*" >> "$LOG"
   --disallowedTools "Bash" "Read(./.env)" \
   --strict-mcp-config --permission-prompts none >> "$LOG" 2>&1
 status=$?
-new=$(find "$STAGE" -name 'ai-daily-*.md' -newer "$MARKER" | head -1)
+# Today's date in the name, because a synced scripts_dir can see other files touched during the run.
+new=$(find "$STAGE" -name "ai-daily-$(date '+%b-%-d' | tr '[:upper:]' '[:lower:]')-*.md" -newer "$MARKER" | head -1)
 rm -f "$MARKER"
 
 if [ $status -ne 0 ]; then
