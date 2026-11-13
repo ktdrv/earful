@@ -1,7 +1,9 @@
 """Render Earful's podcast covers (main feed + Earful Daily) and optionally upload them.
 
     uv run tools/make_cover.py            # render to out/covers/ for review
-    uv run tools/make_cover.py --upload   # render, then upload cover.png + daily/cover.png
+    uv run tools/make_cover.py --upload   # render, upload cover.png + daily/cover.png, republish both feeds
+
+Changed the design? Bump feed.COVER_VERSION before uploading, or podcast apps keep the old art.
 
 Typographic on purpose: podcast apps show covers at ~60-100px, so each cover is one stacked
 wordmark on a colour field, and the two feeds differ first by that field (paper vs. ink) so
@@ -15,7 +17,9 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import feed  # noqa: E402
 from config import load_config  # noqa: E402
+from produce import FEED_KEY, MANIFEST_KEY  # noqa: E402
 from storage import Storage  # noqa: E402
 
 SIZE = 3000  # Apple's maximum; apps downscale from here
@@ -80,6 +84,14 @@ if __name__ == "__main__":
         render(variant).save(paths[variant], "PNG", optimize=True)
         print("rendered", paths[variant])
     if "--upload" in sys.argv:
-        storage = Storage(load_config().r2)
+        cfg = load_config()
+        storage = Storage(cfg.r2)
         print("uploaded", storage.upload_file(str(paths["main"]), "cover.png", "image/png"))
         print("uploaded", storage.upload_file(str(paths["daily"]), "daily/cover.png", "image/png"))
+        # Re-render both feeds so the new feed.COVER_VERSION reaches subscribers now rather
+        # than with the next episode.
+        for prefix in ("", "daily/"):
+            manifest = feed.manifest_from_json(storage.download_bytes(prefix + MANIFEST_KEY).decode())
+            podcast = cfg.feeds["daily"] if prefix else cfg.podcast
+            xml = feed.render_feed(podcast, manifest, cfg.r2.public_base, f"{prefix}cover.png")
+            print("republished", storage.upload_bytes(xml.encode(), prefix + FEED_KEY, "application/rss+xml; charset=utf-8"))

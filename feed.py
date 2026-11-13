@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from email.utils import format_datetime
 from xml.sax.saxutils import escape, quoteattr
 
+# 2 = the typographic covers from tools/make_cover.py (Sep 2026).
+COVER_VERSION = 2
+
 
 def slugify(title: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")
@@ -52,7 +55,9 @@ def manifest_from_json(text: str) -> list[EpisodeRecord]:
 
 
 def render_feed(podcast, records: list[EpisodeRecord], public_base: str, cover_key: str = "cover.png") -> str:
-    cover = public_url(public_base, cover_key)
+    # Podcast apps cache artwork by URL and rarely re-fetch it, so a new cover uploaded under
+    # the same key never shows up. Bump COVER_VERSION whenever the covers change.
+    cover = f"{public_url(public_base, cover_key)}?v={COVER_VERSION}"
     explicit = "yes" if podcast.explicit else "no"
     items = []
     for r in reversed(records):  # manifest stored oldest-first; feed shows newest-first
